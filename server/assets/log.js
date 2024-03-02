@@ -1,4 +1,4 @@
-const logPrefix = () => {
-    return eval();
+const logPrefix = (filename) => {
+    return `[${new Date().toLocaleTimeString()}] [${filename}]`;
 };
-export {};
+export default logPrefix;

@@ -1,0 +1,67 @@
+<nav id="top-navbar">
+    <ul>
+        <div id="navbar-left">
+            <li>Home</li>
+            <li>Contact</li>
+            <li>Support</li>
+            <li></li>
+        </div>
+        <div id="navbar-center">
+            <input type="text" placeholder="Search Files" id="searchBar">
+        </div>
+        <div id="navbar-right">
+            <li>Home</li>
+            <li>Contact</li>
+            <li>Support</li>
+            <li></li>
+        </div>
+    </ul>
+</nav>
+<style>
+    :root {
+        --navbar-height: 70px
+    }
+
+    #top-navbar {
+        background-color: var(--navbar);
+        height: var(--navbar-height);
+        width: auto;
+    }
+    #top-navbar > ul {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: inherit;
+        list-style: none;
+    }
+
+    #top-navbar div {
+        width: calc(100%/3);
+        height: inherit;
+    }
+
+    #navbar-left, #navbar-center, #navbar-right{
+        display: flex;
+        align-items: center;
+    }
+
+    #navbar-left{ justify-content: flex-start; }
+    #navbar-center{ justify-content: center; }
+    #navbar-right{ justify-content: flex-end; }
+
+
+    /* Other */
+
+    #searchBar[placeholder] {
+        color: gray;
+    }
+    #searchBar{
+        border-color: gray;
+        color: var(--text) !important;
+        width: 100%;
+        height: 50%;
+        border-radius: 100px;
+        background:  var(--secondary-background);
+        padding: 0 15px;
+    }
+</style>

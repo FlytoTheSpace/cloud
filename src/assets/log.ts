@@ -1,3 +1,4 @@
-const logPrefix = ()=>{
-    return eval()
+const logPrefix = (filename: string)=>{
+    return `[${new Date().toLocaleTimeString()}] [${filename}]`
 }
+export default logPrefix
