@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <script src="/templates/js/default.js"></script>
+    <link rel="stylesheet" href="/templates/css/theme_dark.css">
+    <style>
+        main {
+            min-height: 800px;
+        }
+
+        #mainbox {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            height: 70vh;
+        }
+
+        #loginForm {
+            width: 90%;
+            height: 60vh;
+            background: var(--secondary-background);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        #loginForm>* {
+            margin: 5px 0;
+        }
+
+        #loginForm input {
+            border-radius: 20px;
+            width: 300px;
+            font-size: medium;
+            color: var(--text);
+
+            background-color: var(--secondary-background);
+            padding: 10px;
+        }
+
+        #submitButton {
+            width: 325px;
+            border-radius: 100px;
+            height: 40px !important;
+        }
+
+        #loginForm input[placeholder] {
+            color: var(--text);
+        }
+
+        @media screen and (max-width: 400px) {
+            #loginForm {
+                width: 100vw;
+            }
+
+            #loginForm input {
+                width: 80vw;
+            }
+
+            #submitButton {
+                width: 85vw;
+            }
+        }
+
+        .errorBox{
+            color: var(--error);
+        }
+    </style>
+</head>
+
+<body>
+    <header></header>
+    <main>
+        <div id="mainbox">
+            <form action="/login/submit" id="loginForm" , method="post">
+                <h1>Login</h1>
+                <input type="text" id="usernameOrEmail" placeholder="Username Or Email" required>
+                <p class="errorBox" id="usernameOrEmailErrorBox"></p>
+                <input type="password" id="password" placeholder="Password" required>
+                <p class="errorBox" id="passwordErrorBox"></p>
+                <button class="t-1 c-blue" id="submitButton">Login</button>
+                <p class="errorBox" id="otherErrorBox"></p>
+            </form>
+        </div>
+    </main>
+    <footer></footer>
+    <script>
+        const usernameOrEmailErrorBox = document.getElementById('usernameOrEmailErrorBox');
+        const passwordErrorBox = document.getElementById('passwordErrorBox');
+        const otherErrorBox = document.getElementById('otherErrorBox');
+        const loginForm = document.getElementById('loginForm')
+
+        function checkStatus(status) {
+            if (status === 'please provide a username or email!' || status === 'invalid username' || status === 'account doesn\'t exist!') {
+
+                usernameOrEmailErrorBox.innerHTML = status;
+
+            } else if (status === 'please provide a password!' || status === 'incorrect password') {
+
+                passwordErrorBox.innerHTML = status;
+
+            } else if (status === 'successful login') {
+                // On Login
+                alert("Successfully Logged in!")
+
+            } else {
+
+                otherErrorBox.innerHTML = status;
+
+            }
+        }
+    </script>
+    <script>
+        loginForm.addEventListener('submit', async (event) => {
+            event.preventDefault()
+
+            const usernameOrEmail = loginForm.elements["usernameOrEmail"].value;
+            const password = loginForm.elements["password"].value;
+
+            const loginRequest = await fetch('/submit/login', {
+                method: 'POST',
+                headers: {
+                    "content-type": "application/json"
+                },
+                body: JSON.stringify({ 'usernameOrEmail': usernameOrEmail, 'password': password }),
+                credentials: "include"
+            })
+            const loginResponse = await loginRequest.json()
+
+
+            usernameOrEmailErrorBox.innerHTML = ''
+            passwordErrorBox.innerHTML = ''
+            otherErrorBox.innerHTML = ''
+
+            checkStatus(loginResponse.status)
+        })
+
+    </script>
+</body>
+
+</html>

@@ -29,6 +29,7 @@ export const AccountsSchema = new Schema({
     emailVerified: Boolean
 });
 export const AccountsModel = mongoose.model("accounts", AccountsSchema, 'accounts'); // <---  User Model
+// Accessories for Working with Accounts
 export const Accounts = {
     findAccountOne: {
         email: async (data) => (await AccountsModel.find({ 'email': data })).map(account => account.toJSON())[0],
@@ -49,7 +50,7 @@ export const Accounts = {
             logMSG(["Unable to Find/Update The Specified User"], [error.message], "Database");
         }
     },
-    createNewUser: async (userData) => {
+    register: async (userData) => {
         const newUser = new AccountsModel(userData);
         try {
             await newUser.save();
@@ -60,5 +61,9 @@ export const Accounts = {
             console.error('Error saving new user:', error);
             return false;
         }
+    },
+    isAvailable: {
+        username: async (username) => !(await AccountsModel.findOne({ username })),
+        email: async (email) => !(await AccountsModel.findOne({ email }))
     }
 };

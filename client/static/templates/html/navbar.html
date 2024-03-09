@@ -1,22 +1,19 @@
 <nav id="top-navbar">
     <ul>
         <div id="navbar-left">
-            <li>Home</li>
-            <li>Contact</li>
-            <li>Support</li>
-            <li></li>
+            <li class="nav-item" onclick="location.href = '/'">Home</li>
+            <li class="nav-item" onclick="location.href = '/cloud'">My Storage</li>
+            <li class="nav-item" onclick="location.href = '/support'">Support</li>
         </div>
         <div id="navbar-center">
             <input type="text" placeholder="Search Files" id="searchBar">
         </div>
         <div id="navbar-right">
-            <li>Home</li>
-            <li>Contact</li>
-            <li>Support</li>
-            <li></li>
+            <img class="nav-item" src="./assets/images/icons/light/menu.svg" alt="" id="menu-icon">
         </div>
     </ul>
 </nav>
+<hr>
 <style>
     :root {
         --navbar-height: 70px
@@ -24,10 +21,11 @@
 
     #top-navbar {
         background-color: var(--navbar);
-        height: var(--navbar-height);
+        min-height: var(--navbar-height);
         width: auto;
     }
-    #top-navbar > ul {
+
+    #top-navbar>ul {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -36,18 +34,23 @@
     }
 
     #top-navbar div {
-        width: calc(100%/3);
-        height: inherit;
-    }
-
-    #navbar-left, #navbar-center, #navbar-right{
         display: flex;
         align-items: center;
+        width: calc(100%/3);
+        height: var(--navbar-height);
     }
 
-    #navbar-left{ justify-content: flex-start; }
-    #navbar-center{ justify-content: center; }
-    #navbar-right{ justify-content: flex-end; }
+    #top-navbar div>* {
+        margin: 10px 0;
+        padding: 15px;
+    }
+
+
+    #navbar-left { justify-content: flex-start; }
+
+    #navbar-center { justify-content: center; }
+
+    #navbar-right { justify-content: flex-end; }
 
 
     /* Other */
@@ -55,13 +58,34 @@
     #searchBar[placeholder] {
         color: gray;
     }
-    #searchBar{
+
+    #searchBar {
         border-color: gray;
         color: var(--text) !important;
         width: 100%;
-        height: 50%;
+        height: 40px;
         border-radius: 100px;
-        background:  var(--secondary-background);
-        padding: 0 15px;
+        background: var(--secondary-background);
+        padding: 0 15px !important;
+        transition: all 0.3s ease-in-out; /* Add smooth transition for all properties */
+    }
+
+    .nav-item:hover{
+        cursor: pointer;
+    }
+
+    /* Media Queries */
+    @media screen and (max-width: 768px) {
+        #top-navbar div {
+            width: 33.33%;
+            /* This ensures each section takes up 1/3 of the width */
+        }
+    }
+
+    /* Add this media query to hide certain elements on smaller screens */
+    @media screen and (max-width: 576px) {
+        #navbar-left li:nth-child(n+2) {
+            display: none;
+        }
     }
 </style>

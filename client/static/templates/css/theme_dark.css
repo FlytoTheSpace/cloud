@@ -1,8 +1,12 @@
 :root {
     --main-background: #1d1d1d;
-    --secondary-background: #2c2c2c;
+    --secondary-background: #272727;
     --navbar: #252525;
-    --text: white
+    --text: white;
+
+    --error: red;
+    --success: lime;
+
 }
 body{
     color: white;

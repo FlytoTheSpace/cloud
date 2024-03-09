@@ -1,3 +1,88 @@
-button.t-1 {
-    
+/* Button Colours */
+button.c-green {
+    background-color: lime;
+    color: white;
+    border: transparent solid;
+    border-radius: 0.5vw;
+}
+
+button.c-green:hover {
+    background-color: green;
+    transition: 0.2s;
+}
+
+button.c-blue {
+    background-color: dodgerblue;
+    color: white;
+    border: transparent solid;
+}
+
+button.c-blue:hover {
+    background-color: #0050a0;
+    transition: 0.2s;
+}
+
+button.c-gray {
+    background-color: #2b2b2b;
+    color: white;
+    border: gray solid;
+}
+
+button.c-gray:hover {
+    background-color: darkslategray;
+    transition: 0.2s;
+}
+button.c-transparent{
+    background-color: transparent;
+    border: solid 0 transparent !important;
+}
+
+/* Styles */
+button.t-1{
+    padding: 0.2vh 1.5vw;
+    font-size: 1.2em;
+    cursor: pointer;
+    transition: 0.2s;
+    border-radius: 0.5em;
+}
+button.circle{
+    border-radius: 10vh;
+    padding: 0.2vh;
+    font-size: 1.2em;
+    cursor: pointer;
+    transition: 0.2s;
+}
+button.circle.primary{
+    transition: 0.2s;
+    cursor: pointer;
+    padding: 0.2vh;
+    height: 2em;
+    width: 2em;
+}
+button.circle.secondary{
+    transition: 0.2s;
+    cursor: pointer;
+    padding: 0.2vh;
+    height: 1.5em;
+    width: 1.5em;
+}
+
+
+/* general */
+button.fullspan {
+    width: 100%;
+    border-radius: 1em;
+}
+button.withIcon {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+button.withIcon img{
+    max-height: 1.2em;
+    max-width: 1.2em;
+}
+button.circle.c-transparent.withIcon{
+    border-radius: 0 !important;
+    padding: 0 !important;
 }

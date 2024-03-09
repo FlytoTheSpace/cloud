@@ -44,16 +44,17 @@ export const AccountsSchema = new Schema({
 
 export const AccountsModel = mongoose.model("accounts", AccountsSchema, 'accounts') // <---  User Model
 
+// Accessories for Working with Accounts
 export const Accounts = {
     findAccountOne: {
         email: async (data: string) => (await AccountsModel.find({'email' : data})).map(account => account.toJSON())[0],
         username: async (data: string) => (await AccountsModel.find({'username' : data})).map(account => account.toJSON())[0],
-        userID: async (data: string) => (await AccountsModel.find({'userID' : data})).map(account => account.toJSON())[0],
+        userID: async (data: number) => (await AccountsModel.find({'userID' : data})).map(account => account.toJSON())[0],
     },
     findAccounts: {
         email: async (data: string) => (await AccountsModel.find({'email' : data})).map(account => account.toJSON()),
         username: async (data: string) => (await AccountsModel.find({'username' : data})).map(account => account.toJSON()),
-        userID: async (data: string) => (await AccountsModel.find({'userID' : data})).map(account => account.toJSON()),
+        userID: async (data: number) => (await AccountsModel.find({'userID' : data})).map(account => account.toJSON()),
     },
     getAll: async () => (await AccountsModel.find({})).map(account=>account.toJSON()),
     updateOne: async (filter: object, updatedValue: object)=>{
@@ -63,9 +64,8 @@ export const Accounts = {
             logMSG(["Unable to Find/Update The Specified User"], [(error as Error).message], "Database")
         }
     },
-    createNewUser: async (userData: accountInterface): Promise<boolean> => {
+    register: async (userData: accountInterface): Promise<boolean> => {
         const newUser = new AccountsModel(userData);
-      
         try {
             await newUser.save();
             console.log(logPrefix("Database"), `New account registered: ${userData.username}`);
@@ -74,5 +74,9 @@ export const Accounts = {
             console.error('Error saving new user:', error);
             return false;
         }
+    },
+    isAvailable: {
+        username: async (username: string): Promise<boolean> => !(await AccountsModel.findOne({ username })),
+        email: async (email: string): Promise<boolean> => !(await AccountsModel.findOne({ email }))
     }
 }
