@@ -2,6 +2,7 @@ import 'dotenv/config'
 import mongoose from 'mongoose';
 import logPrefix from './log.js';
 import { logMSG, throwError } from './utils.js';
+import { Response } from 'express';
 
 export interface accountInterface {
     username: string,
@@ -22,8 +23,6 @@ try {
     console.log(logPrefix("Database"), `Connect to Loaded MongoDB`);
 
 } catch (error) {
-
-    // 
     if((error as Error).message == `${logPrefix('Database')} MongoDB URI not Provided, please Provide it!`){
         throw (error as Error)
     }
@@ -64,16 +63,10 @@ export const Accounts = {
             logMSG(["Unable to Find/Update The Specified User"], [(error as Error).message], "Database")
         }
     },
-    register: async (userData: accountInterface): Promise<boolean> => {
+    register: async (userData: accountInterface): Promise<void> => {
         const newUser = new AccountsModel(userData);
-        try {
-            await newUser.save();
-            console.log(logPrefix("Database"), `New account registered: ${userData.username}`);
-            return true;
-        } catch (error) {
-            console.error('Error saving new user:', error);
-            return false;
-        }
+        await newUser.save();
+        console.log(logPrefix("Database"), `New Account Registered: ${userData.username}`);
     },
     isAvailable: {
         username: async (username: string): Promise<boolean> => !(await AccountsModel.findOne({ username })),

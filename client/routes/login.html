@@ -96,11 +96,11 @@
         const loginForm = document.getElementById('loginForm')
 
         function checkStatus(status) {
-            if (status === 'please provide a username or email!' || status === 'invalid username' || status === 'account doesn\'t exist!') {
+            if (status === 'please provide a username or email!' || status === 'invalid username!' || status === 'account doesn\'t exist!') {
 
                 usernameOrEmailErrorBox.innerHTML = status;
 
-            } else if (status === 'please provide a password!' || status === 'incorrect password') {
+            } else if (status === 'please provide a password!' || status === 'incorrect password!') {
 
                 passwordErrorBox.innerHTML = status;
 

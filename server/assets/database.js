@@ -12,7 +12,6 @@ try {
     console.log(logPrefix("Database"), `Connect to Loaded MongoDB`);
 }
 catch (error) {
-    // 
     if (error.message == `${logPrefix('Database')} MongoDB URI not Provided, please Provide it!`) {
         throw error;
     }
@@ -52,15 +51,8 @@ export const Accounts = {
     },
     register: async (userData) => {
         const newUser = new AccountsModel(userData);
-        try {
-            await newUser.save();
-            console.log(logPrefix("Database"), `New account registered: ${userData.username}`);
-            return true;
-        }
-        catch (error) {
-            console.error('Error saving new user:', error);
-            return false;
-        }
+        await newUser.save();
+        console.log(logPrefix("Database"), `New Account Registered: ${userData.username}`);
     },
     isAvailable: {
         username: async (username) => !(await AccountsModel.findOne({ username })),
