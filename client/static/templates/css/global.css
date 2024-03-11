@@ -6,6 +6,9 @@
 body{
     background: var(--main-background);
 }
+main{
+    min-height: 100vh;
+}
 input:focus{
     outline: none;
 }

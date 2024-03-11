@@ -23,8 +23,7 @@ import {Accounts} from './assets/database.js'
 
 // Routers
 import pagesRouter from './routes/pages.js' 
-import APIRouter from './routes/api.js' 
-import exp from 'constants';
+import APIRouter from './routes/api.js'
 
 // Middlewares
 app.use(express.static(path.join(ROOT, 'client/static/')))

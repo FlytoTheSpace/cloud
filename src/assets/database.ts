@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import logPrefix from './log.js';
 import { logMSG, throwError } from './utils.js';
 import { Response } from 'express';
+import jwt from 'jsonwebtoken';
 
 export interface accountInterface {
     username: string,
@@ -46,14 +47,14 @@ export const AccountsModel = mongoose.model("accounts", AccountsSchema, 'account
 // Accessories for Working with Accounts
 export const Accounts = {
     findAccountOne: {
-        email: async (data: string) => (await AccountsModel.find({'email' : data})).map(account => account.toJSON())[0],
-        username: async (data: string) => (await AccountsModel.find({'username' : data})).map(account => account.toJSON())[0],
-        userID: async (data: number) => (await AccountsModel.find({'userID' : data})).map(account => account.toJSON())[0],
+        username: async (username: string) => (await AccountsModel.find({'username' : username})).map(account => account.toJSON())[0],
+        email: async (email: string) => (await AccountsModel.find({'email' : email})).map(account => account.toJSON())[0],
+        userID: async (ID: number) => (await AccountsModel.find({'userID' : ID})).map(account => account.toJSON())[0],
     },
     findAccounts: {
-        email: async (data: string) => (await AccountsModel.find({'email' : data})).map(account => account.toJSON()),
-        username: async (data: string) => (await AccountsModel.find({'username' : data})).map(account => account.toJSON()),
-        userID: async (data: number) => (await AccountsModel.find({'userID' : data})).map(account => account.toJSON()),
+        username: async (username: string) => (await AccountsModel.find({'username' : username})).map(account => account.toJSON()),
+        email: async (email: string) => (await AccountsModel.find({'email' : email})).map(account => account.toJSON()),
+        userID: async (ID: number) => (await AccountsModel.find({'userID' : ID})).map(account => account.toJSON()),
     },
     getAll: async () => (await AccountsModel.find({})).map(account=>account.toJSON()),
     updateOne: async (filter: object, updatedValue: object)=>{
@@ -71,5 +72,15 @@ export const Accounts = {
     isAvailable: {
         username: async (username: string): Promise<boolean> => !(await AccountsModel.findOne({ username })),
         email: async (email: string): Promise<boolean> => !(await AccountsModel.findOne({ email }))
+    },
+    token: {
+        isValid: (token: string): boolean =>{
+            try{
+                jwt.verify(token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string))
+                return true
+            } catch (error){
+                return false
+            }
+        }
     }
 }

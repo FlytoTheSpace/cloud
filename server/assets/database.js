@@ -2,6 +2,7 @@ import 'dotenv/config';
 import mongoose from 'mongoose';
 import logPrefix from './log.js';
 import { logMSG, throwError } from './utils.js';
+import jwt from 'jsonwebtoken';
 try {
     // Checking If the URI is Provided
     if (!process.env.mongoDBURI) {
@@ -31,14 +32,14 @@ export const AccountsModel = mongoose.model("accounts", AccountsSchema, 'account
 // Accessories for Working with Accounts
 export const Accounts = {
     findAccountOne: {
-        email: async (data) => (await AccountsModel.find({ 'email': data })).map(account => account.toJSON())[0],
-        username: async (data) => (await AccountsModel.find({ 'username': data })).map(account => account.toJSON())[0],
-        userID: async (data) => (await AccountsModel.find({ 'userID': data })).map(account => account.toJSON())[0],
+        username: async (username) => (await AccountsModel.find({ 'username': username })).map(account => account.toJSON())[0],
+        email: async (email) => (await AccountsModel.find({ 'email': email })).map(account => account.toJSON())[0],
+        userID: async (ID) => (await AccountsModel.find({ 'userID': ID })).map(account => account.toJSON())[0],
     },
     findAccounts: {
-        email: async (data) => (await AccountsModel.find({ 'email': data })).map(account => account.toJSON()),
-        username: async (data) => (await AccountsModel.find({ 'username': data })).map(account => account.toJSON()),
-        userID: async (data) => (await AccountsModel.find({ 'userID': data })).map(account => account.toJSON()),
+        username: async (username) => (await AccountsModel.find({ 'username': username })).map(account => account.toJSON()),
+        email: async (email) => (await AccountsModel.find({ 'email': email })).map(account => account.toJSON()),
+        userID: async (ID) => (await AccountsModel.find({ 'userID': ID })).map(account => account.toJSON()),
     },
     getAll: async () => (await AccountsModel.find({})).map(account => account.toJSON()),
     updateOne: async (filter, updatedValue) => {
@@ -57,5 +58,16 @@ export const Accounts = {
     isAvailable: {
         username: async (username) => !(await AccountsModel.findOne({ username })),
         email: async (email) => !(await AccountsModel.findOne({ email }))
+    },
+    token: {
+        isValid: (token) => {
+            try {
+                jwt.verify(token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
+                return true;
+            }
+            catch (error) {
+                return false;
+            }
+        }
     }
 };
