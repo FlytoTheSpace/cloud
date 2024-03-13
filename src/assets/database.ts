@@ -47,9 +47,9 @@ export const AccountsModel = mongoose.model("accounts", AccountsSchema, 'account
 // Accessories for Working with Accounts
 export const Accounts = {
     findAccountOne: {
-        username: async (username: string) => (await AccountsModel.find({'username' : username})).map(account => account.toJSON())[0],
-        email: async (email: string) => (await AccountsModel.find({'email' : email})).map(account => account.toJSON())[0],
-        userID: async (ID: number) => (await AccountsModel.find({'userID' : ID})).map(account => account.toJSON())[0],
+        username: async (username: string): Promise<accountInterface | undefined> => (await AccountsModel.find({'username' : username})).map(account => account.toJSON())[0] as accountInterface | undefined,
+        email: async (email: string): Promise<accountInterface | undefined> => (await AccountsModel.find({'email' : email})).map(account => account.toJSON())[0] as accountInterface | undefined,
+        userID: async (ID: number): Promise<accountInterface | undefined> => (await AccountsModel.find({'userID' : ID})).map(account => account.toJSON())[0] as accountInterface | undefined,
     },
     findAccounts: {
         username: async (username: string) => (await AccountsModel.find({'username' : username})).map(account => account.toJSON()),
@@ -77,6 +77,16 @@ export const Accounts = {
         isValid: (token: string): boolean =>{
             try{
                 jwt.verify(token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string))
+                return true
+            } catch (error){
+                return false
+            }
+        }
+    },
+    sessionToken: {
+        isValid: (token: string): boolean =>{
+            try{
+                jwt.verify(token, (process.env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY as string))
                 return true
             } catch (error){
                 return false

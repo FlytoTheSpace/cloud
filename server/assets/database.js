@@ -69,5 +69,16 @@ export const Accounts = {
                 return false;
             }
         }
+    },
+    sessionToken: {
+        isValid: (token) => {
+            try {
+                jwt.verify(token, process.env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY);
+                return true;
+            }
+            catch (error) {
+                return false;
+            }
+        }
     }
 };

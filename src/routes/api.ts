@@ -145,6 +145,9 @@ router.post('/submit/register', async (req, res) => {
         sameSite: 'strict'
     }).status(201).json({ 'status': 'successfully registered your Account1', 'success': true })
 })
+router.get('/get/account/info', (req, res)=>{
+    
+})
 
 function generateUserID() {
     const minID = 1000000000;
