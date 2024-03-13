@@ -2,7 +2,6 @@ import 'dotenv/config'
 import mongoose from 'mongoose';
 import logPrefix from './log.js';
 import { logMSG, throwError } from './utils.js';
-import { Response } from 'express';
 import jwt from 'jsonwebtoken';
 
 export interface accountInterface {

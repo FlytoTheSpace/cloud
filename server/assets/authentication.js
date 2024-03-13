@@ -1,10 +1,8 @@
 import 'dotenv';
-import path from 'path';
 import { Accounts } from './database.js';
 import UI from './ui.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { match } from 'assert';
 export const defaultRole = 'member';
 const sessionTokenExpiration = 30; // Time before the Session Token Expires (in Minutes)
 export const Authentication = {
@@ -23,7 +21,7 @@ export const Authentication = {
     main: async (req, res, next, API, adminOnly) => {
         try {
             // Verifying Token is Valid
-            if (!req.cookies.token.toString()) {
+            if (!req.cookies.token) {
                 return res.status(401).send(Authentication.tools.resErrorPayload("Account Required", API));
             }
             if (!Accounts.token.isValid(req.cookies.token.toString())) {
@@ -45,6 +43,7 @@ export const Authentication = {
                 return res.status(401).send(Authentication.tools.resErrorPayload("Invalid Token", API));
             }
             if (!API) {
+                // Assigning the User a Session Token if not an API
                 const sessionTokenPayload = {
                     'token': token,
                     'ip': (req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0] : req.ip),

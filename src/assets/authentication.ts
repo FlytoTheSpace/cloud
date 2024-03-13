@@ -1,11 +1,9 @@
 import 'dotenv'
-import path from 'path';
 import { Accounts, accountInterface } from './database.js';
 import { NextFunction, Request, Response } from 'express';
 import UI from './ui.js';
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
-import { match } from 'assert';
 
 export type roles = 'member' | 'admin';
 export const defaultRole: roles = 'member';
@@ -34,7 +32,7 @@ export const Authentication = {
     main: async (req: Request, res: Response, next: NextFunction, API?: boolean, adminOnly?: boolean): Promise<void | Response<any, Record<string, any>>> => {
         try {
             // Verifying Token is Valid
-            if (!req.cookies.token.toString()) { return res.status(401).send(Authentication.tools.resErrorPayload("Account Required", API)) }
+            if (!req.cookies.token) { return res.status(401).send(Authentication.tools.resErrorPayload("Account Required", API)) }
             if (!Accounts.token.isValid(req.cookies.token.toString())) { return res.status(401).send(Authentication.tools.resErrorPayload("Invalid Token", API)) }
             const token: string = req.cookies.token.toString();
             const decodedToken: accountInterface = (jwt.verify(token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface)
@@ -50,6 +48,7 @@ export const Authentication = {
             if (!isPasswordMatch) { return res.status(401).send(Authentication.tools.resErrorPayload("Invalid Token", API)) }
 
             if (!API) {
+                // Assigning the User a Session Token if not an API
                 const sessionTokenPayload: SessionTokenPayload = {
                     'token': token,
                     'ip': (req.headers['x-forwarded-for'] ? (req.headers['x-forwarded-for'] as string).split(',')[0] : req.ip) as string,
