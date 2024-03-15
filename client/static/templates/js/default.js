@@ -63,4 +63,14 @@ const loadDefault = async () => {
     loadDefaultNavbar();
 }
 
+(async () => {
+    const info = await fetch('/get/account/info')
+    if(!info.ok){
+        alert("Unable to verify your login")
+    }
+    const userInfo = await info.json()
+
+    console.log(userInfo)
+})()
+
 loadDefault()

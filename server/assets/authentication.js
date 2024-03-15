@@ -29,7 +29,11 @@ export const Authentication = {
             }
             const token = req.cookies.token.toString();
             const decodedToken = jwt.verify(token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
-            if (!API && Authentication.isSessionTokenValid(req, adminOnly)) {
+            if (!API && Authentication.isSessionTokenValid(req)) {
+                if (adminOnly && decodedToken.role !== 'admin') {
+                    return res.status(401).send(Authentication.tools.resErrorPayload("Only Administrators are Allowed!", API));
+                }
+                ;
                 return next();
             }
             // Finding The User in the Database
@@ -69,7 +73,7 @@ export const Authentication = {
             return res.status(500).send(Authentication.tools.resErrorPayload("internal server error!", API));
         }
     },
-    isSessionTokenValid: (req, adminOnly = false) => {
+    isSessionTokenValid: (req) => {
         try {
             // Checking if Session Token or Token is Missing
             if (!req.cookies.sessionToken || !req.cookies.token) {
@@ -106,14 +110,101 @@ export const Authentication = {
             if (!isPasswordMatch) {
                 return false;
             }
-            if (adminOnly && decodedToken.role !== 'admin') {
-                return false;
-            }
             return true;
         }
         catch (error) {
             console.log(error);
             return false;
+        }
+    },
+    isSessionTokenValidandAdmin: (req) => {
+        const reponse = { valid: false, admin: false };
+        try {
+            // Checking if Session Token or Token is Missing
+            if (!req.cookies.sessionToken || !req.cookies.token) {
+                return reponse;
+            }
+            // Token Verification
+            const token = req.cookies.token.toString();
+            if (!Accounts.token.isValid(token)) {
+                return reponse;
+            }
+            const decodedToken = jwt.verify(token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
+            // Session Token Verification
+            const sessionToken = req.cookies.sessionToken.toString();
+            if (!Accounts.sessionToken.isValid(sessionToken)) {
+                return reponse;
+            }
+            const decodedSessionToken = jwt.verify(sessionToken, process.env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY);
+            if ((Date.now() - decodedSessionToken.creation) / 1000 > sessionTokenExpiration * 60) {
+                return reponse;
+            }
+            if (!req.ip) {
+                return reponse;
+            }
+            if (req.ip !== decodedSessionToken.ip) {
+                return reponse;
+            }
+            // Session Payload Token Verification
+            if (!Accounts.token.isValid(decodedSessionToken.token)) {
+                console.log("decodedSessionPayloadToken is not Valid:", decodedSessionToken.token);
+                return reponse;
+            }
+            const decodedSessionPayloadToken = jwt.verify(token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
+            const isPasswordMatch = crypto.timingSafeEqual(Buffer.from(decodedToken.password), Buffer.from(decodedSessionPayloadToken.password));
+            if (!isPasswordMatch) {
+                return reponse;
+            }
+            reponse.valid = true;
+            if (decodedToken.role === 'admin') {
+                reponse.admin = true;
+            }
+            return reponse;
+        }
+        catch (error) {
+            console.log(error);
+            return reponse;
+        }
+    },
+    getGeneralInfo: async (req) => {
+        const info = { loggedIn: false, admin: false };
+        try {
+            const session = Authentication.isSessionTokenValidandAdmin(req);
+            if (session.valid === true) {
+                info.loggedIn = true;
+                if (session.admin === true) {
+                    info.admin = true;
+                }
+                return info;
+            }
+            if (!req.cookies.token) {
+                return info;
+            }
+            if (!Accounts.token.isValid(req.cookies.token.toString())) {
+                return info;
+            }
+            const token = req.cookies.token.toString();
+            const decodedToken = jwt.verify(token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
+            // Finding The User in the Database
+            const matchedAccount = await Accounts.findAccountOne.email(decodedToken.email);
+            if (!matchedAccount) {
+                return info;
+            }
+            // Checking Password
+            const isPasswordMatch = crypto.timingSafeEqual(Buffer.from(decodedToken.password), Buffer.from(matchedAccount.password));
+            if (!isPasswordMatch) {
+                return info;
+            }
+            info.loggedIn = true;
+            if (matchedAccount.role === 'admin') {
+                info.admin = true;
+            }
+            ;
+            return info;
+        }
+        catch (error) {
+            console.log(error);
+            return info;
         }
     },
     // Middlewares

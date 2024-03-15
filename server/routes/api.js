@@ -12,7 +12,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import config from '../assets/config.js';
 import logPrefix from '../assets/log.js';
-import { defaultRole } from '../assets/authentication.js';
+import Authentication, { defaultRole } from '../assets/authentication.js';
 const router = express.Router();
 router.use(bodyParser.urlencoded({ extended: true }));
 router.use(cookieParser());
@@ -144,7 +144,14 @@ router.post('/submit/register', async (req, res) => {
         sameSite: 'strict'
     }).status(201).json({ 'status': 'successfully registered your Account1', 'success': true });
 });
-router.get('/get/account/info', (req, res) => {
+router.get('/get/account/info', async (req, res) => {
+    try {
+        res.status(200).json(await Authentication.getGeneralInfo(req));
+    }
+    catch (error) {
+        console.log(error);
+        res.status(500).json({ loggedIn: false, admin: false });
+    }
 });
 function generateUserID() {
     const minID = 1000000000;
