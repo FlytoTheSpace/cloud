@@ -4,10 +4,10 @@
     --navbar: #252525;
     --text: white;
 
-    --error: red;
-    --success: lime;
+    --error: rgb(235, 96, 96);
+    --success: rgb(125, 245, 125);
 
 }
 body{
-    color: white;
+    color: var(--text);
 }

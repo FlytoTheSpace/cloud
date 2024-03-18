@@ -1,0 +1,13 @@
+:root {
+    --main-background: #e6e6e6;
+    --secondary-background: #ffffff;
+    --navbar: #e6e6e6;
+    --text: black;
+
+    --error: rgb(235, 96, 96);
+    --success: rgb(125, 245, 125);
+
+}
+body{
+    color: var(--text);
+}

@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <script src="/templates/js/default.js"></script>
-    <link rel="stylesheet" href="/templates/css/theme_dark.css">
+    <link rel="stylesheet" href="/templates/css/theme/dark.css">
     <style>
         main {
             min-height: 800px;
@@ -77,10 +77,10 @@
     <header></header>
     <main>
         <div id="mainbox">
-            <form action="/login/submit" id="loginForm" , method="post">
+            <form action="/submit/login" id="loginForm" , method="post">
                 <h1>Login</h1>
-                <input type="text" id="usernameOrEmail" placeholder="Username Or Email" required>
-                <p class="errorBox" id="usernameOrEmailErrorBox"></p>
+                <input type="text" id="username" placeholder="Username Or Email" required>
+                <p class="errorBox" id="email"></p>
                 <input type="password" id="password" placeholder="Password" required>
                 <p class="errorBox" id="passwordErrorBox"></p>
                 <button class="t-1 c-blue" id="submitButton">Login</button>
