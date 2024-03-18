@@ -128,7 +128,9 @@
                     "content-type": "application/json"
                 },
                 body: JSON.stringify({ 'usernameOrEmail': usernameOrEmail, 'password': password }),
-                credentials: "include"
+                credentials: "include",
+                referrerPolicy: "strict-origin",
+                mode: "same-origin"
             })
             const loginResponse = await loginRequest.json()
 

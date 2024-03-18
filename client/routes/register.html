@@ -79,10 +79,15 @@
         <div id="mainbox">
             <form action="/submit/login" id="loginForm" , method="post">
                 <h1>Login</h1>
-                <input type="text" id="username" placeholder="Username Or Email" required>
-                <p class="errorBox" id="email"></p>
-                <input type="password" id="password" placeholder="Password" required>
+                <input type="text" id="username" placeholder="username" required>
+                <p class="errorBox" id="usernameErrorBox"></p>
+                
+                <input type="text" id="email" placeholder="email" required>
+                <p class="errorBox" id="emailErrorBox"></p>
+
+                <input type="password" id="password" placeholder="password" required>
                 <p class="errorBox" id="passwordErrorBox"></p>
+
                 <button class="t-1 c-blue" id="submitButton">Login</button>
                 <p class="errorBox" id="otherErrorBox"></p>
             </form>
@@ -90,7 +95,8 @@
     </main>
     <footer></footer>
     <script>
-        const usernameOrEmailErrorBox = document.getElementById('usernameOrEmailErrorBox');
+        const usernameErrorBox = document.getElementById('usernameErrorBox');
+        const emailErrorBox = document.getElementById('emailErrorBox');
         const passwordErrorBox = document.getElementById('passwordErrorBox');
         const otherErrorBox = document.getElementById('otherErrorBox');
         const loginForm = document.getElementById('loginForm')
@@ -119,21 +125,25 @@
         loginForm.addEventListener('submit', async (event) => {
             event.preventDefault()
 
-            const usernameOrEmail = loginForm.elements["usernameOrEmail"].value;
+            const username = loginForm.elements["username"].value;
+            const email = loginForm.elements["email"].value;
             const password = loginForm.elements["password"].value;
 
-            const loginRequest = await fetch('/submit/login', {
+            const loginRequest = await fetch('/submit/register', {
                 method: 'POST',
                 headers: {
                     "content-type": "application/json"
                 },
-                body: JSON.stringify({ 'usernameOrEmail': usernameOrEmail, 'password': password }),
-                credentials: "include"
+                body: JSON.stringify({ 'username': username, 'email': email, 'password': password }),
+                credentials: "include",
+                referrerPolicy: "strict-origin",
+                mode: "same-origin"
             })
             const loginResponse = await loginRequest.json()
 
 
-            usernameOrEmailErrorBox.innerHTML = ''
+            usernameErrorBox.innerHTML = ''
+            emailErrorBox.innerHTML = ''
             passwordErrorBox.innerHTML = ''
             otherErrorBox.innerHTML = ''
 

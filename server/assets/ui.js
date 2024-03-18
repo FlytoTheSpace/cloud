@@ -7,7 +7,7 @@ const UI = {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>${title ? title : msg}</title>
             <script src="/templates/js/default.js"></script>
-            <link rel="stylesheet" href="/templates/css/theme_dark.css">
+            <link rel="stylesheet" href="/templates/css/theme/dark.css">
             <style>
                 #box{
                     display: flex;

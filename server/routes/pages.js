@@ -44,4 +44,7 @@ for (let i = 0; i < routeFiles.length; i++) {
     }
 }
 ;
+router.get('/cloud/u/', Authentication.token, (req, res) => {
+    res.sendFile(path.join(ROOT, 'client/page/cloud_interface.html'));
+});
 export default router;

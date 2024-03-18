@@ -1,5 +1,5 @@
 const loadDefaultNavbar = async () => {
-    const navbar = await fetch(`./templates/html/navbar.html`)
+    const navbar = await fetch(`/templates/html/navbar.html`)
     if (!navbar.ok) {
         console.error("Unable to Load Default Navbar")
     } else {
@@ -47,7 +47,7 @@ const loadDefaultNavbar = async () => {
     }
 }
 const loadCSS = async () => {
-    const CSS = await fetch(`./templates/html/css.html`)
+    const CSS = await fetch(`/templates/html/css.html`)
     if (!CSS.ok) {
         console.error("Unable to Load Default Navbar")
     } else {
