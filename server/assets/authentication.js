@@ -21,13 +21,13 @@ export const Authentication = {
     main: async (req, res, next, API, adminOnly) => {
         try {
             // Verifying Token is Valid
-            if (!req.cookies.token) {
+            if (!req.cookies.token && !req.headers.authorization) {
                 return res.status(401).send(Authentication.tools.resErrorPayload("Account Required", API));
             }
-            if (!Accounts.token.isValid(req.cookies.token.toString())) {
+            if (!Accounts.token.isValid(req.cookies.token.toString() || req.headers.authorization?.toString())) {
                 return res.status(401).send(Authentication.tools.resErrorPayload("Invalid Token", API));
             }
-            const token = req.cookies.token.toString();
+            const token = req.cookies.token.toString() || req.headers.authorization?.toString();
             const decodedToken = jwt.verify(token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
             if (!API && Authentication.isSessionTokenValid(req)) {
                 if (adminOnly && decodedToken.role !== 'admin') {

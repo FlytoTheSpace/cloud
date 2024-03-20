@@ -4,6 +4,7 @@ import path from 'path';
 import ROOT from '../assets/root.js';
 import { logMSG } from '../assets/utils.js';
 import Authentication from '../assets/authentication.js';
+import jwt from 'jsonwebtoken';
 const files = await fs.readdir(path.join(ROOT, 'client/routes'), 'utf-8');
 const routeFiles = files.filter(value => value.endsWith('.html'));
 const routeFileURL = routeFiles.map(value => value.slice(0, value.length - 5).toLowerCase().replace(/[^a-z]/g, '-'));

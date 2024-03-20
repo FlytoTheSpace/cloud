@@ -35,9 +35,9 @@ export const Authentication = {
     main: async (req: Request, res: Response, next: NextFunction, API?: boolean, adminOnly?: boolean): Promise<void | Response<any, Record<string, any>>> => {
         try {
             // Verifying Token is Valid
-            if (!req.cookies.token) { return res.status(401).send(Authentication.tools.resErrorPayload("Account Required", API)) }
-            if (!Accounts.token.isValid(req.cookies.token.toString())) { return res.status(401).send(Authentication.tools.resErrorPayload("Invalid Token", API)) }
-            const token: string = req.cookies.token.toString();
+            if (!req.cookies.token && !req.headers.authorization) { return res.status(401).send(Authentication.tools.resErrorPayload("Account Required", API)) }
+            if (!Accounts.token.isValid(req.cookies.token.toString() || req.headers.authorization?.toString())) { return res.status(401).send(Authentication.tools.resErrorPayload("Invalid Token", API)) }
+            const token: string = req.cookies.token.toString() || req.headers.authorization?.toString();
             const decodedToken: accountInterface = (jwt.verify(token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface)
 
             if (!API && Authentication.isSessionTokenValid(req)) {

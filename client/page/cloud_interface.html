@@ -8,29 +8,188 @@
     <script src="/templates/js/default.js" defer></script>
     <link rel="stylesheet" href="/templates/css/theme/dark.css" id="themeStyleSheet">
     <link rel="stylesheet" href="/css/cloud.css">
+
     <script>
         const themeStyleSheet = document.getElementById('themeStyleSheet')
         const theme = {
             main: "dark",
             icon: "color"
         }
-        document.cookie = 
+        document.cookie =
         themeStyleSheet.href = `/templates/css/theme/${theme.main}.css`
-    </script>
+        </script>
     <script src="/js/cloud_sidebar.js" defer></script>
+    <script>
+        const $ = (query, multiple) => multiple ? document.querySelectorAll(query) : document.querySelector(query);
+        
+        async function loadFiles(path) {
+            const filesSection = $('#filesection', false)
+            filesSection.innerHTML = ''
+
+            let userId;
+            if (structuredClone(location.href).endsWith('u') || structuredClone(location.href).endsWith('u/')) {
+                userId = 'u'
+            } else if (location.href.includes('shared' || 'shared/')) {
+
+            }
+            const options = {
+                method: 'GET',
+                headers: {
+                    path: path
+                }
+            }
+            const request = await fetch(`/cloud/files/${userId}`, options)
+            if (!request.ok) { return alert("Unable to Load Files") }
+
+
+            const ReponseObject = await request.json()
+
+            if(ReponseObject.length < 1){
+                filesSection.innerHTML = 'No Files Found'
+                return null;
+            }
+
+            console.log(ReponseObject)
+            ReponseObject.forEach(fileObject => {
+
+                const filename = fileObject.name;
+                const filepath = fileObject.path;
+                const type = fileObject.type;
+
+                filesection.insertAdjacentHTML('beforeend', `
+                
+                <div class="file" data-path="${filepath}" data-type="${type}", data-selected='false'>
+                    <div class="icon">
+                        <img src="${(type !== 'directory')? '/assets/images/icons/file/txt.png': '/assets/images/icons/light/folder.svg' }" alt="">
+                    </div>
+                    <div class="name">${filename}</div>
+                </div>`
+
+                )
+            })
+            const fileElements = $('.file', true)
+
+            Array.from(fileElements).forEach(fileElement => {
+                fileElement.addEventListener('click', (event) => {
+                    const file = event.target.closest('.file')
+                    if(file.dataset.selected === 'false'){
+                        file.dataset.selected = true
+                        file.style.background = '#3a4668'
+                    } else {
+                        file.dataset.selected = false
+                        file.style.background = 'var(--bold-background)'
+                    }
+                })
+            })
+        }
+    </script>
+
+    <style>
+        #mainContainer {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Navigation Bar */
+        #mainSectionTopBar {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-top-right-radius: inherit;
+            border-top-left-radius: inherit;
+            height: 60px;
+            width: calc(100% - 20px);
+        }
+
+        #mainSectionTopBar>button {
+            margin: 5px;
+            height: 60px;
+            width: 60px;
+            color: white;
+        }
+
+        #mainSectionTopBar * img {
+            width: 60px;
+            height: 60px;
+        }
+
+        /* Main Section */
+        #filesection {
+            padding: 40px;
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .file {
+            margin: 0 10px;
+            background: var(--bold-background);
+            padding: 10px 10px;
+            height: 150px;
+            width: 100px;
+            border-radius: 10px;
+        }
+
+        .file .icon {
+            height: calc(90% - 20px);
+        }
+        .file .icon img{
+            height: 100px;
+            width: 100px;
+        }
+
+        .file .name {
+            width: 100px;
+            text-align: center;
+            height: calc(10% + 20px);
+            overflow-wrap: break-word;
+        }
+
+        .file .icon img {
+            max-height: 100%;
+            max-width: 100%;
+        }
+    </style>
 </head>
 
 <body>
     <header></header>
     <main>
         <div id="sidebar">
-            <ul>
-                
-            </ul>
+            <ul></ul>
         </div>
-        <div id="mainContainer"></div>
+        <div id="mainContainer">
+            <div id="mainSectionTopBar">
+                <button class="circle c-transparent withIcon actionBtn" id="open"><img src="/assets/images/icons/light/file_open.svg" alt=""></button>
+                <button class="circle c-transparent withIcon actionBtn" id="download"><img src="/assets/images/icons/light/download.svg" alt=""></button>
+                <button class="circle c-transparent withIcon actionBtn" id="copy"><img src="/assets/images/icons/light/copy.svg" alt=""></button>
+                <button class="circle c-transparent withIcon actionBtn" id="paste"><img src="/assets/images/icons/light/paste.svg" alt=""></button>
+                <button class="circle c-transparent withIcon actionBtn" id="delete"><img src="/assets/images/icons/light/delete.svg" alt=""></button>
+            </div>
+            <hr>
+            <div id="filesection"></div>
+        </div>
     </main>
     <footer></footer>
+    <script>
+        loadFiles('/')
+        const actionBtns = Array.from($('.actionBtn', true))
+
+        actionBtns.forEach(actionBtn=>{
+            actionBtn.addEventListener('click', ({target})=>{
+                const btn = target.closest('.actionBtn')
+                
+                // Every Selected Element
+                const fileElements = Array.from($("#filesection > .file[data-selected='true']", true))
+                if(fileElements.length < 1){ return null }
+
+                if (btn.id === 'open'){
+                    console.log('fileElements[0].dataset.path)')
+                    if(fileElements[0].dataset.type === 'directory'){ loadFiles(fileElements[0].dataset.path)}
+                }
+
+            })
+        })
+    </script>
 </body>
 
 </html>

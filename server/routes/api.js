@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 // Built-in Modules
 import path from 'path';
+import fs from 'fs/promises';
 // Local Modules
 import ROOT from '../assets/root.js';
 import { logMSG } from '../assets/utils.js';
@@ -153,6 +154,89 @@ router.get('/get/account/info', async (req, res) => {
         res.status(500).json({ loggedIn: false, admin: false });
     }
 });
+router.get('/cloud/files/:userid', Authentication.tokenAPI, async (req, res) => {
+    // Sanitization
+    if (!req.params.userid) {
+        return res.status(400).send({ 'status': 'please provide userid', 'success': false });
+    }
+    let userID;
+    try {
+        userID = (req.params.userid === 'u') ? jwt.verify(req.cookies.token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID : parseInt(req.params.userid);
+    }
+    catch (error) {
+        return res.status(400).send({ 'status': 'invalid user ID', 'success': false });
+    }
+    const directory = ((req.headers.path ? req.headers.path : '/').toString())
+        .replace(/^[ a-z | A-Z | 0-9 | ! | @ | # | $ | % | ^ | & | \( | \) | \- | _ | \{ | \} | \[ | \] | ; | \' | \, | \. | \+ | [\.\.] | [\/\/] | [\\\\]]/g, '');
+    console.log(directory);
+    try {
+        // Checking if the Directory Exists or Not
+        if (!await dirExists(path.join(ROOT, `database/${userID}/`))) {
+            await fs.mkdir(path.join(ROOT, `database/${userID}/`));
+        }
+        const filesObject = await getFiles(userID, directory);
+        res.status(200).json(filesObject);
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json(Authentication.tools.resErrorPayload("internal server error!", true));
+    }
+});
+router.get('/u/info/userid', Authentication.tokenAPI, (req, res) => {
+    try {
+        const userID = jwt.verify(req.cookies.token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID;
+        res.status(200).json({ 'userID': userID });
+    }
+    catch (error) {
+        console.log(error);
+        res.status(500).send(Authentication.tools.resErrorPayload("internal server error!", true));
+    }
+});
+async function dirExists(path) {
+    try {
+        await fs.access(path);
+        return true;
+    }
+    catch (err) {
+        if (err.message.includes('no such file or directory')) {
+            return false;
+        }
+        else {
+            throw err;
+        }
+    }
+}
+async function getFiles(userID, directory) {
+    const files = (await fs.readdir(path.join(ROOT, `database/${userID}`, directory)));
+    const filesObject = [];
+    for (let i = 0; i < files.length; i++) {
+        const filePath = path.join(directory, files[i]);
+        const type = await checkPathType(path.join(ROOT, `database/${userID}`, filePath));
+        const fileObject = {
+            'name': files[i],
+            'path': filePath,
+            'type': type
+        };
+        filesObject[i] = fileObject;
+    }
+    return filesObject;
+}
+async function checkPathType(path) {
+    try {
+        const stats = await fs.lstat(path);
+        if (stats.isFile()) {
+            return 'file';
+        }
+        if (stats.isDirectory()) {
+            return 'directory';
+        }
+        return 'unknown';
+    }
+    catch (err) {
+        console.log(err);
+        return 'unknown';
+    }
+}
 function generateUserID() {
     const minID = 1000000000;
     const maxID = 9999999999;

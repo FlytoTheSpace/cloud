@@ -3,6 +3,7 @@ import express from 'express'
 
 // Built-in Modules
 import path from 'path'
+import fs from 'fs/promises'
 // Local Modules
 import ROOT from '../assets/root.js'
 import { logMSG } from '../assets/utils.js';
@@ -19,6 +20,13 @@ const router = express.Router()
 router.use(bodyParser.urlencoded({ extended: true }));
 router.use(cookieParser());
 router.use(express.json());
+
+interface FileObject {
+    [input: string]: string
+    name: string,
+    path: string,
+    type: 'file' | 'directory' | 'unknown'
+}
 
 // Login Submit API
 router.post('/submit/login', async (req, res) => {
@@ -145,15 +153,91 @@ router.post('/submit/register', async (req, res) => {
         sameSite: 'strict'
     }).status(201).json({ 'status': 'successfully registered your Account1', 'success': true })
 })
-router.get('/get/account/info', async (req, res)=>{
+router.get('/get/account/info', async (req, res) => {
     try {
         res.status(200).json(await Authentication.getGeneralInfo(req))
     } catch (error) {
         console.log(error)
-        res.status(500).json({loggedIn: false, admin: false})
+        res.status(500).json({ loggedIn: false, admin: false })
     }
 })
+router.get('/cloud/files/:userid', Authentication.tokenAPI, async (req, res) => {
 
+    // Sanitization
+    if (!req.params.userid) { return res.status(400).send({ 'status': 'please provide userid', 'success': false }) }
+    let userID: number;
+    try {
+        userID = (req.params.userid === 'u') ? (jwt.verify(req.cookies.token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface).userID : parseInt(req.params.userid);
+    } catch (error) { return res.status(400).send({ 'status': 'invalid user ID', 'success': false }) }
+    
+    const directory: string = ((req.headers.path ? req.headers.path : '/').toString())
+        .replace(/^[ a-z | A-Z | 0-9 | ! | @ | # | $ | % | ^ | & | \( | \) | \- | _ | \{ | \} | \[ | \] | ; | \' | \, | \. | \+ | [\.\.] | [\/\/] | [\\\\]]/g, '');
+    
+    console.log(directory)
+    try {
+        // Checking if the Directory Exists or Not
+        if (!await dirExists(path.join(ROOT, `database/${userID}/`))){ await fs.mkdir(path.join(ROOT, `database/${userID}/`)) }
+    
+        const filesObject: FileObject[] = await getFiles(userID, directory)
+        res.status(200).json(filesObject)
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json(Authentication.tools.resErrorPayload("internal server error!", true))
+    }
+})
+router.get('/u/info/userid', Authentication.tokenAPI, (req, res) => {
+    try {
+        const userID: number = (jwt.verify(req.cookies.token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface).userID
+
+        res.status(200).json({ 'userID': userID })
+    } catch (error) {
+        console.log(error)
+        res.status(500).send(Authentication.tools.resErrorPayload("internal server error!", true))
+    }
+})
+async function dirExists(path: string): Promise<boolean> {
+    try {
+        await fs.access(path);
+        return true;
+    } catch (err) {
+        if ((err as Error).message.includes('no such file or directory')) {
+            return false;
+        } else {
+            throw err
+        }
+    }
+}
+async function getFiles(userID: number, directory: string): Promise<FileObject[]> {
+    const files = (await fs.readdir(path.join(ROOT, `database/${userID}`, directory)))
+
+    const filesObject: FileObject[] = []
+
+    for (let i = 0; i < files.length; i++) {
+
+        const filePath: string = path.join(directory, files[i])
+        const type: "file" | "directory" | "unknown" = await checkPathType(path.join(ROOT, `database/${userID}`, filePath))
+
+        const fileObject: FileObject = {
+            'name': files[i],
+            'path': filePath,
+            'type': type
+        }
+        filesObject[i] = fileObject;
+    }
+    return filesObject
+}
+async function checkPathType(path: string): Promise<'file' | 'directory' | 'unknown'> {
+    try {
+        const stats = await fs.lstat(path);
+        if (stats.isFile()) { return 'file' }
+        if (stats.isDirectory()) { return 'directory' }
+
+        return 'unknown';
+    } catch (err) {
+        console.log(err)
+        return 'unknown'
+    }
+}
 function generateUserID() {
     const minID = 1000000000;
     const maxID = 9999999999;
