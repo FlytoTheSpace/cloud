@@ -43,14 +43,22 @@ main {
 
 @media screen and (max-width: 900px) {
     main {
-        flex-direction: column-reverse;
+        display: block;
     }
 
     #mainContainer {
-        width: calc(100% - 30px);
-        height: calc(100vh - var(--navbar-height) - 2px - 50px - 30px);
+        margin: 0 !important;
+        width: 100%;
+        min-height: 70vh;
+        padding-bottom: 50px;
     }
     #sidebar {
+        background: var(--main-background);
+        position: fixed;
+        display: block;
+        bottom: 0;
+        left: 0;
+        z-index: 10;
         width: 100%;
         height: 50px;
     }

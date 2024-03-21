@@ -41,7 +41,7 @@ router.post('/submit/login', async (req, res) => {
         return res.status(401).json({ 'status': 'access denied!', 'success': false });
     }
     ;
-    const usernameOrEmail = req.body.usernameOrEmail.toString().toLowerCase().replace(/[^a-z | 0-9 | \. | \@ ]/g, ''); // Sanitizing it
+    const usernameOrEmail = req.body.usernameOrEmail.toString().toLowerCase().replace(/[^a-z | 0-9 | \. | \@ | \+ ]/g, ''); // Sanitizing it
     let matchedAccount;
     // Finding Account based on it's Username or Email
     if (req.body.usernameOrEmail.includes('@')) {
@@ -51,7 +51,7 @@ router.post('/submit/login', async (req, res) => {
     }
     else {
         // If it's a Username:
-        const username = usernameOrEmail.replace(/\@/g, '');
+        const username = usernameOrEmail.replace(/ \@ | \+ /g, '');
         if (username.length < 4)
             return res.status(406).json({ 'status': 'invalid username!', 'success': false });
         matchedAccount = await Accounts.findAccountOne.username(username); // The Matched Account
@@ -210,7 +210,7 @@ async function getFiles(userID, directory) {
     const files = (await fs.readdir(path.join(ROOT, `database/${userID}`, directory)));
     const filesObject = [];
     for (let i = 0; i < files.length; i++) {
-        const filePath = path.join(directory, files[i]);
+        const filePath = path.join(directory, files[i]).replace(/\\/g, '/');
         const type = await checkPathType(path.join(ROOT, `database/${userID}`, filePath));
         const fileObject = {
             'name': files[i],

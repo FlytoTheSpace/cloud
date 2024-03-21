@@ -17,15 +17,15 @@
         }
         document.cookie =
         themeStyleSheet.href = `/templates/css/theme/${theme.main}.css`
-        </script>
+    </script>
     <script src="/js/cloud_sidebar.js" defer></script>
     <script>
         const $ = (query, multiple) => multiple ? document.querySelectorAll(query) : document.querySelector(query);
         
         async function loadFiles(path) {
+            const directoryInputBar = $('#directoryInputBar')
             const filesSection = $('#filesection', false)
             filesSection.innerHTML = ''
-
             let userId;
             if (structuredClone(location.href).endsWith('u') || structuredClone(location.href).endsWith('u/')) {
                 userId = 'u'
@@ -40,7 +40,7 @@
             }
             const request = await fetch(`/cloud/files/${userId}`, options)
             if (!request.ok) { return alert("Unable to Load Files") }
-
+            directoryInputBar.value = path
 
             const ReponseObject = await request.json()
 
@@ -49,7 +49,6 @@
                 return null;
             }
 
-            console.log(ReponseObject)
             ReponseObject.forEach(fileObject => {
 
                 const filename = fileObject.name;
@@ -93,28 +92,39 @@
         /* Navigation Bar */
         #mainSectionTopBar {
             display: flex;
-            align-items: center;
+            flex-direction: column;
+            justify-content: space-between;
             padding: 10px;
             border-top-right-radius: inherit;
             border-top-left-radius: inherit;
-            height: 60px;
             width: calc(100% - 20px);
         }
+        #optionsbar{
+            min-height: 60px;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        #dirBar{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
 
-        #mainSectionTopBar>button {
+        #mainSectionTopBar button {
             margin: 5px;
-            height: 60px;
-            width: 60px;
+            height: 50px;
+            width: 50px;
             color: white;
         }
 
         #mainSectionTopBar * img {
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
         }
 
         /* Main Section */
         #filesection {
+            overflow-y: scroll;
             padding: 40px;
             display: flex;
             flex-wrap: wrap;
@@ -159,11 +169,16 @@
         </div>
         <div id="mainContainer">
             <div id="mainSectionTopBar">
-                <button class="circle c-transparent withIcon actionBtn" id="open"><img src="/assets/images/icons/light/file_open.svg" alt=""></button>
-                <button class="circle c-transparent withIcon actionBtn" id="download"><img src="/assets/images/icons/light/download.svg" alt=""></button>
-                <button class="circle c-transparent withIcon actionBtn" id="copy"><img src="/assets/images/icons/light/copy.svg" alt=""></button>
-                <button class="circle c-transparent withIcon actionBtn" id="paste"><img src="/assets/images/icons/light/paste.svg" alt=""></button>
-                <button class="circle c-transparent withIcon actionBtn" id="delete"><img src="/assets/images/icons/light/delete.svg" alt=""></button>
+                <div id="optionsbar">
+                    <button class="circle c-transparent withIcon actionBtn" id="open"><img src="/assets/images/icons/light/file_open.svg" alt=""></button>
+                    <button class="circle c-transparent withIcon actionBtn" id="download"><img src="/assets/images/icons/light/download.svg" alt=""></button>
+                    <button class="circle c-transparent withIcon actionBtn" id="copy"><img src="/assets/images/icons/light/copy.svg" alt=""></button>
+                    <button class="circle c-transparent withIcon actionBtn" id="paste"><img src="/assets/images/icons/light/paste.svg" alt=""></button>
+                    <button class="circle c-transparent withIcon actionBtn" id="delete"><img src="/assets/images/icons/light/delete.svg" alt=""></button>
+                </div>
+                <div id="dirBar">
+                    <input type="text" id="directoryInputBar" value="/">
+                </div>
             </div>
             <hr>
             <div id="filesection"></div>
@@ -183,7 +198,7 @@
                 if(fileElements.length < 1){ return null }
 
                 if (btn.id === 'open'){
-                    console.log('fileElements[0].dataset.path)')
+                    console.log(fileElements[0].dataset.path)
                     if(fileElements[0].dataset.type === 'directory'){ loadFiles(fileElements[0].dataset.path)}
                 }
 
