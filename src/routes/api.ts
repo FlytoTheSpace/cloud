@@ -192,16 +192,18 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
         userID = (req.params.userid === 'u') ? (jwt.verify(req.cookies.token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface).userID : parseInt(req.params.userid);
     } catch (error) { return res.status(400).send({ 'status': 'invalid user ID', 'success': false }) }
 
-    if (!req.headers.path) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
     if (!req.headers.action) { return res.status(406).json(Authentication.tools.resErrorPayload("An Action must be Provided", true)) }
-
+    
     try {
         const action = req.headers.action.toString()
         if (action === 'open') {
-            const directory: string = req.headers.path.toString().replace(dirRegex, '').replace(/\.\./g, '')
-            if (await checkPathType(path.join(config.databasePath, `${userID}`, req.headers.path.toString())) !== 'file') { return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a File!", true)) }
             
-            res.status(200).sendFile(path.join(config.databasePath, `${userID}`, req.headers.path.toString()))
+            if (!req.headers.path) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
+
+            const directory: string = req.headers.path.toString().replace(dirRegex, '').replace(/\.\./g, '')
+            if (await checkPathType(path.join(config.databasePath, `${userID}/`, directory)) !== 'file') { return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a File!", true)) }
+            
+            res.status(200).sendFile(path.join(config.databasePath, `${userID}`, directory))
         }
     } catch (error) {
         console.log(error)
