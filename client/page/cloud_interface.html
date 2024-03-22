@@ -15,7 +15,6 @@
             main: "dark",
             icon: "color"
         }
-        document.cookie =
         themeStyleSheet.href = `/templates/css/theme/${theme.main}.css`
     </script>
     <script src="/js/cloud_sidebar.js" defer></script>
@@ -23,7 +22,6 @@
         const $ = (query, multiple) => multiple ? document.querySelectorAll(query) : document.querySelector(query);
         
         async function loadFiles(path) {
-            const directoryInputBar = $('#directoryInputBar')
             const filesSection = $('#filesection', false)
             filesSection.innerHTML = ''
             let userId;
@@ -40,7 +38,7 @@
             }
             const request = await fetch(`/cloud/files/${userId}`, options)
             if (!request.ok) { return alert("Unable to Load Files") }
-            directoryInputBar.value = path
+            $('#directoryInputBar').value = path
 
             const ReponseObject = await request.json()
 
@@ -57,7 +55,7 @@
 
                 filesection.insertAdjacentHTML('beforeend', `
                 
-                <div class="file" data-path="${filepath}" data-type="${type}", data-selected='false'>
+                <div class="file" data-path="${filepath}" data-type="${type}" data-selected='false' data-timeout="false">
                     <div class="icon">
                         <img src="${(type !== 'directory')? '/assets/images/icons/file/txt.png': '/assets/images/icons/light/folder.svg' }" alt="">
                     </div>
@@ -67,19 +65,60 @@
                 )
             })
             const fileElements = $('.file', true)
-
             Array.from(fileElements).forEach(fileElement => {
                 fileElement.addEventListener('click', (event) => {
                     const file = event.target.closest('.file')
-                    if(file.dataset.selected === 'false'){
+                    if(file.dataset.selected === 'true' && file.dataset.timeout === 'true'){
+                        // On Double Click on Files/Directory
+                        file.dataset.timeout === false
+                        open(file.dataset)
+                    }
+                    // On Single Click
+                    else if(file.dataset.selected === 'false'){
                         file.dataset.selected = true
-                        file.style.background = '#3a4668'
+                        file.style.background = 'rgba(91, 115, 183, 0.66)'
+
+                        file.dataset.timeout = true;
+                        setTimeout(() => {
+                            file.dataset.timeout = false;
+                        }, 1*1000);
                     } else {
                         file.dataset.selected = false
                         file.style.background = 'var(--bold-background)'
                     }
                 })
             })
+        }
+        async function open(dataset){
+            if (dataset.type === 'directory'){
+                loadFiles(dataset.path)
+            } else if (dataset.type === 'file'){
+                console.log("File Type Detected")
+                let userId;
+                if (structuredClone(location.href).endsWith('u') || structuredClone(location.href).endsWith('u/')) {
+                    userId = 'u'
+                } else if (location.href.includes('shared' || 'shared/')) {
+
+                }
+
+                const options = {
+                method: 'GET',
+                    headers: {
+                        path: dataset.path,
+                        action: 'open'
+                    }
+                }
+
+                const request = await fetch(`/cloud/files/actions/${userId}`, options)
+                if (!request.ok) { return alert("Unable to Load Files") }
+
+                const File = await request.blob()
+
+                const fileURL = URL.createObjectURL(File)
+                preview(fileURL)
+            } else {
+                console.log("Unkown File Type")
+            }
         }
     </script>
 
@@ -159,9 +198,51 @@
             max-width: 100%;
         }
     </style>
+
+    <style>
+        #previewContainer{
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.363);
+            position: fixed;
+            z-index: 10;
+            top: 0;
+            left: 0;
+            display: none;
+        }
+        #previewContainerNavbar{
+            padding: 0 10px;
+            width: calc(100% - 20px);
+            height: 70px;
+            background: var(--navbar);
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+        #previewSection{
+            width: 100%;
+            height: calc(100% - 70px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--main-background);
+        }
+        #preview{
+            width: 100%;
+            height: 100%;
+        }
+    </style>
 </head>
 
 <body>
+    <div id="previewContainer">
+        <div id="previewContainerNavbar">
+            <button class="circle c-transparent withIcon" id="previewCloseButton"><img src="/assets/images/icons/light/close.svg" alt=""></button>
+        </div>
+        <div id="previewSection">
+            <iframe src="" frameborder="1" id="preview"></iframe>
+        </div>
+    </div>
     <header></header>
     <main>
         <div id="sidebar">
@@ -187,6 +268,33 @@
     <footer></footer>
     <script>
         loadFiles('/')
+        function preview(fileURL){
+            const previewContainer = $('#previewContainer');
+            const previewElement = $('#preview');
+            const previewCloseButton = $('#previewCloseButton');
+
+            previewContainer.style.display = 'block';
+            previewElement.src = fileURL;
+
+            previewElement.addEventListener('load', ()=>{
+
+                console.log("Iframe Loaded")
+                const iframeDOM = previewElement.contentDocument;
+
+                if(theme.main === 'dark'){  iframeDOM.body.style.color = 'white' }
+                console.log(iframeDOM.body.firstElementChild.tagName)
+                if(iframeDOM.body.firstElementChild.tagName.toLowerCase() === 'img'){
+                    iframeDOM.body.firstElementChild.classList.remove('shrinkToFit')
+                    iframeDOM.body.firstElementChild.style.margin = '0 auto'
+                }
+            })
+            previewCloseButton.onclick = ()=>{
+                URL.revokeObjectURL(fileURL);
+                previewElement.src = '';
+                previewContainer.style.display = 'none';
+            }
+
+        }
         const actionBtns = Array.from($('.actionBtn', true))
 
         actionBtns.forEach(actionBtn=>{
@@ -199,10 +307,16 @@
 
                 if (btn.id === 'open'){
                     console.log(fileElements[0].dataset.path)
-                    if(fileElements[0].dataset.type === 'directory'){ loadFiles(fileElements[0].dataset.path)}
+                    open(fileElements[0].dataset)
                 }
 
             })
+        })
+        const directoryInputBar = $('#directoryInputBar')
+        directoryInputBar.addEventListener('keydown', (event)=>{
+            if(event.key === 'Enter'){
+                loadFiles(event.target.value)
+            }
         })
     </script>
 </body>

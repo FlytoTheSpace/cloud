@@ -18,6 +18,7 @@ const router = express.Router();
 router.use(bodyParser.urlencoded({ extended: true }));
 router.use(cookieParser());
 router.use(express.json());
+const dirRegex = /[^a-zA-Z0-9 !#$%&'()\-\[\]_@^{}+,.=;`~]+/g;
 // Login Submit API
 router.post('/submit/login', async (req, res) => {
     // Checking if all the fields are provided
@@ -166,20 +167,50 @@ router.get('/cloud/files/:userid', Authentication.tokenAPI, async (req, res) => 
     catch (error) {
         return res.status(400).send({ 'status': 'invalid user ID', 'success': false });
     }
-    const directory = ((req.headers.path ? req.headers.path : '/').toString())
-        .replace(/^[ a-z | A-Z | 0-9 | ! | @ | # | $ | % | ^ | & | \( | \) | \- | _ | \{ | \} | \[ | \] | ; | \' | \, | \. | \+ | [\.\.] | [\/\/] | [\\\\]]/g, '');
-    console.log(directory);
+    const directory = ((req.headers.path ? req.headers.path : '/').toString()).replace(dirRegex, '').replace(/\.\./g, '');
     try {
         // Checking if the Directory Exists or Not
-        if (!await dirExists(path.join(ROOT, `database/${userID}/`))) {
-            await fs.mkdir(path.join(ROOT, `database/${userID}/`));
+        if (!await dirExists(path.join(config.databasePath, `/${userID}/`))) {
+            await fs.mkdir(path.join(config.databasePath, `/${userID}/`));
         }
         const filesObject = await getFiles(userID, directory);
         res.status(200).json(filesObject);
     }
     catch (error) {
+        return res.status(400).json(Authentication.tools.resErrorPayload("Bad Request", true));
+    }
+});
+router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, res) => {
+    // Sanitization
+    if (!req.params.userid) {
+        return res.status(400).send({ 'status': 'please provide userid', 'success': false });
+    }
+    let userID;
+    try {
+        userID = (req.params.userid === 'u') ? jwt.verify(req.cookies.token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID : parseInt(req.params.userid);
+    }
+    catch (error) {
+        return res.status(400).send({ 'status': 'invalid user ID', 'success': false });
+    }
+    if (!req.headers.path) {
+        return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
+    }
+    if (!req.headers.action) {
+        return res.status(406).json(Authentication.tools.resErrorPayload("An Action must be Provided", true));
+    }
+    try {
+        const action = req.headers.action.toString();
+        if (action === 'open') {
+            const directory = req.headers.path.toString().replace(dirRegex, '').replace(/\.\./g, '');
+            if (await checkPathType(path.join(config.databasePath, `${userID}`, req.headers.path.toString())) !== 'file') {
+                return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a File!", true));
+            }
+            res.status(200).sendFile(path.join(config.databasePath, `${userID}`, req.headers.path.toString()));
+        }
+    }
+    catch (error) {
         console.log(error);
-        return res.status(500).json(Authentication.tools.resErrorPayload("internal server error!", true));
+        return res.status(400).json(Authentication.tools.resErrorPayload("something went wrong!", true));
     }
 });
 router.get('/u/info/userid', Authentication.tokenAPI, (req, res) => {
@@ -207,11 +238,11 @@ async function dirExists(path) {
     }
 }
 async function getFiles(userID, directory) {
-    const files = (await fs.readdir(path.join(ROOT, `database/${userID}`, directory)));
+    const files = (await fs.readdir(path.join(config.databasePath, `${userID}/`, directory)));
     const filesObject = [];
     for (let i = 0; i < files.length; i++) {
         const filePath = path.join(directory, files[i]).replace(/\\/g, '/');
-        const type = await checkPathType(path.join(ROOT, `database/${userID}`, filePath));
+        const type = await checkPathType(path.join(config.databasePath, `${userID}/`, filePath));
         const fileObject = {
             'name': files[i],
             'path': filePath,
@@ -233,7 +264,6 @@ async function checkPathType(path) {
         return 'unknown';
     }
     catch (err) {
-        console.log(err);
         return 'unknown';
     }
 }
