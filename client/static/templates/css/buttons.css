@@ -2,39 +2,53 @@
 button.c-green {
     background-color: lime;
     color: white;
-    border: transparent solid;
+    border-color: lime;
     border-radius: 0.5vw;
 }
 
 button.c-green:hover {
     background-color: green;
+    border-color: green;
     transition: 0.2s;
 }
 
 button.c-blue {
     background-color: dodgerblue;
     color: white;
-    border: transparent solid;
+    border-color: dodgerblue;
 }
 
 button.c-blue:hover {
     background-color: #0050a0;
+    border-color: #0050a0;
+    transition: 0.2s;
+}
+button.c-red {
+    background-color: var(--error);
+    color: white;
+    border-color: var(--error);
+}
+
+button.c-red:hover {
+    background-color: rgb(170, 36, 36);
+    border-color: rgb(170, 36, 36);
     transition: 0.2s;
 }
 
 button.c-gray {
     background-color: #2b2b2b;
     color: white;
-    border: gray solid;
+    border-color: gray;
 }
 
 button.c-gray:hover {
     background-color: darkslategray;
+    border-color: darkslategray;
     transition: 0.2s;
 }
 button.c-transparent{
     background-color: transparent;
-    border: solid 0 transparent !important;
+    border-color: transparent !important;
 }
 
 /* Styles */
@@ -44,6 +58,17 @@ button.t-1{
     cursor: pointer;
     transition: 0.2s;
     border-radius: 0.5em;
+    border-style: solid;
+}
+button.t-2{
+    padding: 0.2vh 1.5vw;
+    font-size: 1.2em;
+    cursor: pointer;
+    transition: 0.2s;
+    border-radius: 0.5em;
+    border-width: 2px;
+    border-style: solid;
+    background: transparent !important;
 }
 button.circle{
     border-radius: 10vh;

@@ -11,7 +11,7 @@ interface configFileInterface {
     'devMode': boolean,
     'databaseDir': string
 }
-// Defaults (DO NOT CHANGE WITHOUT PERMISSION)
+// Defaults
 const defaultconfigFile = {
     'devMode': false,
     'databaseDir': "$ROOT/database"
@@ -46,7 +46,7 @@ for (let i = 0; i < Object.keys(defaultconfigFile).length; i++) {
 }
 
 // 
-const databasePath = (serverConfig.databaseDir.startsWith("$ROOT"))? path.join(ROOT, serverConfig.databaseDir.replace('$ROOT', '')) : ( serverConfig.databaseDir);
+const databasePath: string = (serverConfig.databaseDir.startsWith("$ROOT"))? path.join(ROOT, serverConfig.databaseDir.replace('$ROOT', '')) : ( serverConfig.databaseDir);
 
 // Checking if the Directory Exists
 

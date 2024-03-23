@@ -2,7 +2,7 @@ import 'dotenv/config'
 import os from 'os';
 
 let localIP: string | undefined;
-const ifaces = os.networkInterfaces();
+const ifaces: NodeJS.Dict<os.NetworkInterfaceInfo[]> = os.networkInterfaces();
 
 Object.keys(ifaces).forEach(function (ifname) {
     let alias = 0;

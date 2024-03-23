@@ -3,7 +3,7 @@ import path from 'path';
 import ROOT from './root.js';
 import logPrefix from './log.js';
 import { directoryExists } from './utils.js';
-// Defaults (DO NOT CHANGE WITHOUT PERMISSION)
+// Defaults
 const defaultconfigFile = {
     'devMode': false,
     'databaseDir': "$ROOT/database"

@@ -1,3 +1,3 @@
 import path from "path"
-const ROOT = path.join(import.meta.dirname, '../../')
+const ROOT: string = path.join(import.meta.dirname, '../../')
 export default ROOT

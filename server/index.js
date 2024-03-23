@@ -2,7 +2,7 @@ import 'dotenv/config';
 // Express
 import express from "express";
 const app = express();
-const PORT = process.env.PORT || 5500;
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 5000;
 // Built-in Modules
 import fs from 'fs';
 import path from 'path';

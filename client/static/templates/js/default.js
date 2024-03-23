@@ -14,8 +14,6 @@ const loadDefaultNavbar = async () => {
         } finally {
             hostElement.insertAdjacentHTML("afterbegin", navbarData)
 
-
-            console.log("Script Ran")
             const searchBar = document.getElementById('searchBar');
             const navbarCenter = document.getElementById('navbar-center');
 
@@ -49,7 +47,7 @@ const loadDefaultNavbar = async () => {
 const loadCSS = async () => {
     const CSS = await fetch(`/templates/html/css.html`)
     if (!CSS.ok) {
-        console.error("Unable to Load Default Navbar")
+        console.error("Unable to Load CSS")
     } else {
         const CSSdata = await CSS.text()
 
@@ -69,8 +67,6 @@ const loadDefault = async () => {
         alert("Unable to verify your login")
     }
     const userInfo = await info.json()
-
-    console.log(userInfo)
 })()
 
 loadDefault()

@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { Router } from 'express'
 import fs from 'fs/promises'
 import path from 'path'
 import ROOT from '../assets/root.js'
@@ -7,12 +7,12 @@ import Authentication from '../assets/authentication.js';
 import jwt from 'jsonwebtoken'
 import {accountInterface} from '../assets/database.js'
 
-const files = await fs.readdir(path.join(ROOT, 'client/routes'), 'utf-8');
-const routeFiles = files.filter(value => value.endsWith('.html'))
+const files: string[] = await fs.readdir(path.join(ROOT, 'client/routes'), 'utf-8');
+const routeFiles: string[] = files.filter(value => value.endsWith('.html'))
 
-const routeFileURL = routeFiles.map(value => value.slice(0, value.length - 5).toLowerCase().replace(/[^a-z]/g, '-'))
+const routeFileURL: string[] = routeFiles.map(value => value.slice(0, value.length - 5).toLowerCase().replace(/[^a-z]/g, '-'))
 
-const router = express.Router()
+const router: Router = express.Router()
 
 const TokenAuthenticationRoutes: string[] = ['cloud']
 

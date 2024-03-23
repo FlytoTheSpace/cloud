@@ -14,11 +14,16 @@ import jwt from 'jsonwebtoken';
 import config from '../assets/config.js';
 import logPrefix from '../assets/log.js';
 import Authentication, { defaultRole } from '../assets/authentication.js';
+import { Stats } from 'fs';
 const router = express.Router();
 router.use(bodyParser.urlencoded({ extended: true }));
 router.use(cookieParser());
 router.use(express.json());
-const dirRegex = /[^a-zA-Z0-9 !#$%&'()\-\[\]_@^{}+,.=;`~]+/g;
+const dirRegex = /[\:\*\?\"\<\>\|]+/g;
+String.prototype.sanitizeForPath = function () {
+    const sanitizedString = this.replace(dirRegex, '').replace(/\.\./g, '');
+    return sanitizedString;
+};
 // Login Submit API
 router.post('/submit/login', async (req, res) => {
     // Checking if all the fields are provided
@@ -167,7 +172,7 @@ router.get('/cloud/files/:userid', Authentication.tokenAPI, async (req, res) => 
     catch (error) {
         return res.status(400).send({ 'status': 'invalid user ID', 'success': false });
     }
-    const directory = ((req.headers.path ? req.headers.path : '/').toString()).replace(dirRegex, '').replace(/\.\./g, '');
+    const directory = ((req.headers.path ? req.headers.path : '/').toString()).sanitizeForPath();
     try {
         // Checking if the Directory Exists or Not
         if (!await dirExists(path.join(config.databasePath, `/${userID}/`))) {
@@ -195,17 +200,47 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
     if (!req.headers.action) {
         return res.status(406).json(Authentication.tools.resErrorPayload("An Action must be Provided", true));
     }
+    const action = req.headers.action.toString();
+    if (action !== "open" && action !== "copy" && action !== "cut" && action !== "delete") {
+        return res.status(405).json(Authentication.tools.resErrorPayload("Invalid Operation!", true));
+    }
     try {
-        const action = req.headers.action.toString();
         if (action === 'open') {
+            // Sanitization
             if (!req.headers.path) {
                 return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
             }
-            const directory = req.headers.path.toString().replace(dirRegex, '').replace(/\.\./g, '');
-            if (await checkPathType(path.join(config.databasePath, `${userID}/`, directory)) !== 'file') {
+            const directory = req.headers.path.toString().sanitizeForPath();
+            const completeDir = path.join(config.databasePath, `/${userID}/`, directory);
+            if (!completeDir.includes(config.databasePath)) {
+                return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true));
+            }
+            if (await checkPathType(completeDir) !== 'file') {
                 return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a File!", true));
             }
-            res.status(200).sendFile(path.join(config.databasePath, `${userID}`, directory));
+            res.status(200).sendFile(completeDir);
+        }
+        else if (action === 'delete') {
+            // Sanitization
+            if (!req.headers.path) {
+                return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
+            }
+            const directory = req.headers.path.toString().sanitizeForPath();
+            const completeDir = path.join(config.databasePath, `/${userID}/`, directory);
+            if (!completeDir.includes(config.databasePath)) {
+                return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true));
+            }
+            const PathType = await checkPathType(completeDir);
+            if (PathType === 'unknown') {
+                return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a File/Folder!", true));
+            }
+            if (PathType === 'file') {
+                await fs.unlink(completeDir);
+            }
+            else {
+                await fs.rmdir(completeDir);
+            }
+            res.status(200).json({ 'status': `successfully deleted The ${PathType}!`, 'success': false });
         }
     }
     catch (error) {
@@ -215,6 +250,9 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
 });
 router.get('/u/info/userid', Authentication.tokenAPI, (req, res) => {
     try {
+        if (!req.cookies.token) {
+            res.status(200).json({ 'userID': null });
+        }
         const userID = jwt.verify(req.cookies.token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID;
         res.status(200).json({ 'userID': userID });
     }

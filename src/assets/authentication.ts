@@ -113,7 +113,7 @@ export const Authentication = {
         }
     },
     isSessionTokenValidandAdmin: (req: Request): {valid: boolean, admin: boolean} => {
-        const reponse = {valid: false, admin: false}
+        const reponse: {valid: boolean, admin: boolean} = {valid: false, admin: false}
         try {
             // Checking if Session Token or Token is Missing
             if (!req.cookies.sessionToken || !req.cookies.token) { return reponse }
@@ -151,7 +151,7 @@ export const Authentication = {
     getGeneralInfo: async (req: Request): Promise<getGeneralInfoInterface> => {
         const info: getGeneralInfoInterface = {loggedIn: false, admin: false}
         try {
-            const session = Authentication.isSessionTokenValidandAdmin(req)
+            const session: {valid: boolean, admin: boolean} = Authentication.isSessionTokenValidandAdmin(req)
             if(session.valid === true) {
 
                 info.loggedIn = true

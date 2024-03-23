@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Router } from 'express';
 import fs from 'fs/promises';
 import path from 'path';
 import ROOT from '../assets/root.js';
