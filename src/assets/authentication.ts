@@ -100,7 +100,7 @@ export const Authentication = {
             if (req.ip !== decodedSessionToken.ip) { return false }
 
             // Session Payload Token Verification
-            if (!Accounts.token.isValid(decodedSessionToken.token)) { console.log("decodedSessionPayloadToken is not Valid:", decodedSessionToken.token); return false }
+            if (!Accounts.token.isValid(decodedSessionToken.token)) { return false }
             const decodedSessionPayloadToken: accountInterface = (jwt.verify(token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface)
 
             const isPasswordMatch: boolean = crypto.timingSafeEqual(Buffer.from(decodedToken.password), Buffer.from(decodedSessionPayloadToken.password))
@@ -133,7 +133,7 @@ export const Authentication = {
             if (req.ip !== decodedSessionToken.ip) { return reponse }
 
             // Session Payload Token Verification
-            if (!Accounts.token.isValid(decodedSessionToken.token)) { console.log("decodedSessionPayloadToken is not Valid:", decodedSessionToken.token); return reponse }
+            if (!Accounts.token.isValid(decodedSessionToken.token)) { return reponse }
             const decodedSessionPayloadToken: accountInterface = (jwt.verify(token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface)
 
             const isPasswordMatch: boolean = crypto.timingSafeEqual(Buffer.from(decodedToken.password), Buffer.from(decodedSessionPayloadToken.password))

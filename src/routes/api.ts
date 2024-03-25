@@ -5,7 +5,6 @@ import express, { NextFunction, Request, Response } from 'express'
 import path from 'path'
 import fs from 'fs/promises'
 // Local Modules
-import ROOT from '../assets/root.js'
 import { logMSG } from '../assets/utils.js';
 import { Accounts, accountInterface } from '../assets/database.js';
 import bodyParser from 'body-parser';
@@ -58,11 +57,7 @@ const cloudStorage = multer.diskStorage({
     }
 })
 
-const cloudUpload = multer({storage: cloudStorage})
-
-router.use((err: Error, req: Request, res: Response) => {
-    res.status(400).json({ error: err.message });
-});
+const cloudUpload = multer({ storage: cloudStorage})
 
 // Login Submit API
 router.post('/submit/login', async (req, res) => {
@@ -292,6 +287,7 @@ function missingPathandUserID (req: Request, res: Response, next: NextFunction){
     } catch (error) { return res.status(400).send({ 'status': 'invalid user ID', 'success': false }) }
 
     if (!req.headers.path) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
+    console.log(req.headers['content-type'])
     next();
 }
 async function dirExists(path: string): Promise<boolean> {

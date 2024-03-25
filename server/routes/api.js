@@ -4,7 +4,6 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs/promises';
 // Local Modules
-import ROOT from '../assets/root.js';
 import { logMSG } from '../assets/utils.js';
 import { Accounts } from '../assets/database.js';
 import bodyParser from 'body-parser';
@@ -15,6 +14,7 @@ import config from '../assets/config.js';
 import logPrefix from '../assets/log.js';
 import Authentication, { defaultRole } from '../assets/authentication.js';
 import { Stats } from 'fs';
+import multer from 'multer';
 const router = express.Router();
 router.use(bodyParser.urlencoded({ extended: true }));
 router.use(cookieParser());
@@ -24,6 +24,18 @@ String.prototype.sanitizeForPath = function () {
     const sanitizedString = this.replace(dirRegex, '').replace(/\.\./g, '');
     return sanitizedString;
 };
+const cloudStorage = multer.diskStorage({
+    destination: (req, file, next) => {
+        const userId = (req.params.userid === 'u') ? jwt.verify(req.cookies.token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID : parseInt(req.params.userid);
+        const directory = req.headers.path.toString().sanitizeForPath();
+        const destinationPath = path.join(config.databasePath, `/${userId}/`, directory);
+        next(null, destinationPath);
+    },
+    filename: (req, file, next) => {
+        next(null, file.originalname);
+    }
+});
+const cloudUpload = multer({ storage: cloudStorage });
 // Login Submit API
 router.post('/submit/login', async (req, res) => {
     // Checking if all the fields are provided
@@ -185,6 +197,10 @@ router.get('/cloud/files/:userid', Authentication.tokenAPI, async (req, res) => 
         return res.status(400).json(Authentication.tools.resErrorPayload("Bad Request", true));
     }
 });
+router.post('/cloud/files/upload/:userid', Authentication.tokenAPI, missingPathandUserID, cloudUpload.any(), (req, res) => {
+    console.log(req.files);
+    res.status(201).json({ 'status': 'successfully uploaded your files!', 'success': true });
+});
 router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, res) => {
     // Sanitization
     if (!req.params.userid) {
@@ -261,6 +277,22 @@ router.get('/u/info/userid', Authentication.tokenAPI, (req, res) => {
         res.status(500).send(Authentication.tools.resErrorPayload("internal server error!", true));
     }
 });
+function missingPathandUserID(req, res, next) {
+    if (!req.params.userid) {
+        return res.status(400).send({ 'status': 'please provide userid', 'success': false });
+    }
+    try {
+        (req.params.userid === 'u') ? jwt.verify(req.cookies.token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID : parseInt(req.params.userid);
+    }
+    catch (error) {
+        return res.status(400).send({ 'status': 'invalid user ID', 'success': false });
+    }
+    if (!req.headers.path) {
+        return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
+    }
+    console.log(req.headers['content-type']);
+    next();
+}
 async function dirExists(path) {
     try {
         await fs.access(path);

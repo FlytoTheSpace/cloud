@@ -1,3 +1,5 @@
+const $ = (query, multiple) => multiple ? document.querySelectorAll(query) : document.querySelector(query);
+
 const loadDefaultNavbar = async () => {
     const navbar = await fetch(`/templates/html/navbar.html`)
     if (!navbar.ok) {

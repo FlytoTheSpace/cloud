@@ -102,7 +102,6 @@ export const Authentication = {
             }
             // Session Payload Token Verification
             if (!Accounts.token.isValid(decodedSessionToken.token)) {
-                console.log("decodedSessionPayloadToken is not Valid:", decodedSessionToken.token);
                 return false;
             }
             const decodedSessionPayloadToken = jwt.verify(token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
@@ -147,7 +146,6 @@ export const Authentication = {
             }
             // Session Payload Token Verification
             if (!Accounts.token.isValid(decodedSessionToken.token)) {
-                console.log("decodedSessionPayloadToken is not Valid:", decodedSessionToken.token);
                 return reponse;
             }
             const decodedSessionPayloadToken = jwt.verify(token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
