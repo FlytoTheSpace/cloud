@@ -93,9 +93,11 @@
             height: 115px;
         }
 
-        .file .icon img {
+        .file .icon * {
             height: 100px;
             width: 100px;
+            max-height: 100%;
+            max-width: 100%;
         }
 
         .file .name {
@@ -105,10 +107,6 @@
             overflow-wrap: break-word;
         }
 
-        .file .icon img {
-            max-height: 100%;
-            max-width: 100%;
-        }
         #directoryInputBar{
             width: 100%;
             border-radius: 20px;

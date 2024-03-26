@@ -218,7 +218,7 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
         return res.status(406).json(Authentication.tools.resErrorPayload("An Action must be Provided", true));
     }
     const action = req.headers.action.toString();
-    if (action !== "open" && action !== "copy" && action !== "cut" && action !== "delete") {
+    if (action !== "open" && action !== "copy" && action !== "move" && action !== "delete") {
         return res.status(405).json(Authentication.tools.resErrorPayload("Invalid Operation!", true));
     }
     try {
@@ -268,6 +268,37 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
                     res.status(200).json({ 'status': `successfully copied File/Folder!`, 'success': false });
                 }
             });
+        }
+        else if (action === 'move') {
+            console.log("Move action Called!");
+            // Sanitization
+            if (!req.headers.from) {
+                return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
+            }
+            if (!req.headers.destination) {
+                return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
+            }
+            const fromPath = req.headers.from.toString().sanitizeForPath();
+            const fromCompletePath = path.join(config.databasePath, `/${userID}/`, fromPath).sanitizeForPath(true);
+            const destinationPath = req.headers.destination.toString().sanitizeForPath();
+            const destinationCompletePath = path.join(config.databasePath, `/${userID}/`, destinationPath).sanitizeForPath(true);
+            if (!fromCompletePath.includes(config.databasePath.sanitizeForPath(true)) || !destinationCompletePath.includes(config.databasePath.sanitizeForPath(true))) {
+                return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true));
+            }
+            const fromPathType = await checkPathType(fromCompletePath);
+            const destinationPathType = await checkPathType(destinationCompletePath);
+            console.log(fromCompletePath, '\n', destinationCompletePath);
+            if (fromPathType !== 'file' && fromPathType !== 'directory') {
+                return res.status(406).json(Authentication.tools.resErrorPayload("Paths is must be lead to a File/Folder!", true));
+            }
+            // Moving It
+            try {
+                await fs.rename(fromCompletePath, destinationCompletePath);
+                res.status(200).json({ 'status': `successfully Moved Your File!`, 'success': false });
+            }
+            catch {
+                return res.status(406).json(Authentication.tools.resErrorPayload("Unable to Move Your Files!", true));
+            }
         }
         else if (action === 'delete') {
             // Sanitization

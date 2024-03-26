@@ -186,7 +186,7 @@ function cut(){
     cutlist.length = 0;
 
     selectedFiles.forEach(file=>{
-        cutlist.push(file.dataset.path)
+        cutlist.push({name: file.dataset.name, path: file.dataset.path})
     })
     console.log(cutlist)
 }
@@ -210,12 +210,12 @@ async function paste(){
     const destination = $('#directoryInputBar').dataset.path
     
     if(cutlist.length>0){
-        cutlist.forEach(async filePath=>{
+        cutlist.forEach(async ({name, path})=>{
             const options = {
                 method: 'GET',
                 headers: {
-                    from: filePath,
-                    destination: destination,
+                    from: path,
+                    destination: destination + name,
                     action: 'move'
                 }
             }
