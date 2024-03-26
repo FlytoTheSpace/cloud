@@ -316,7 +316,7 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
             if (PathType === 'file'){
                 await fs.unlink(completeDir)
             } else {
-                await fs.rmdir(completeDir)
+                await fs.rm(completeDir, {force: true, recursive: true})
             }
 
             res.status(200).json({ 'status': `successfully deleted The ${PathType}!`, 'success': false })
