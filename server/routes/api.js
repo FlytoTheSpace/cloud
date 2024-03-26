@@ -238,7 +238,6 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
             res.status(200).sendFile(completePath);
         }
         else if (action === 'copy') {
-            console.log("Copy action Called!");
             // Sanitization
             if (!req.headers.from) {
                 return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
@@ -255,7 +254,6 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
             }
             const fromPathType = await checkPathType(fromCompletePath);
             const destinationPathType = await checkPathType(destinationCompletePath);
-            console.log(fromCompletePath, '\n', destinationCompletePath);
             if (fromPathType !== 'file' && fromPathType !== 'directory') {
                 return res.status(406).json(Authentication.tools.resErrorPayload("Paths is must be lead to a File/Folder!", true));
             }
@@ -269,7 +267,6 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
             }
         }
         else if (action === 'move') {
-            console.log("Move action Called!");
             // Sanitization
             if (!req.headers.from) {
                 return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
@@ -286,7 +283,6 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
             }
             const fromPathType = await checkPathType(fromCompletePath);
             const destinationPathType = await checkPathType(destinationCompletePath);
-            console.log(fromCompletePath, '\n', destinationCompletePath);
             if (fromPathType !== 'file' && fromPathType !== 'directory') {
                 return res.status(406).json(Authentication.tools.resErrorPayload("Paths is must be lead to a File/Folder!", true));
             }
