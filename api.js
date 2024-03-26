@@ -21,9 +21,8 @@ router.use(bodyParser.urlencoded({ extended: true }));
 router.use(cookieParser());
 router.use(express.json());
 const dirRegex = /[\:\*\?\"\<\>\|]+/g;
-const RootdirRegex = /[\*\?\"\<\>\|]+/g;
-String.prototype.sanitizeForPath = function (fromROOT) {
-    const sanitizedString = (fromROOT ? this.replace(RootdirRegex, '') : this.replace(dirRegex, '')).replace(/\.\.+/g, '').replace(/(\/\/+)|(\\+)/g, '/');
+String.prototype.sanitizeForPath = function () {
+    const sanitizedString = this.replace(dirRegex, '').replace(/\.\.+/g, '').replace(/(\/\/+)|(\\+)/g, '/');
     return sanitizedString;
 };
 const cloudStorage = multer.diskStorage({
@@ -218,7 +217,7 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
         return res.status(406).json(Authentication.tools.resErrorPayload("An Action must be Provided", true));
     }
     const action = req.headers.action.toString();
-    if (action !== "open" && action !== "copy" && action !== "cut" && action !== "delete") {
+    if (action !== "open" && action !== "copy" && action !== "move" && action !== "delete") {
         return res.status(405).json(Authentication.tools.resErrorPayload("Invalid Operation!", true));
     }
     try {
@@ -238,7 +237,6 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
             res.status(200).sendFile(completePath);
         }
         else if (action === 'copy') {
-            console.log("Copy action Called!");
             // Sanitization
             if (!req.headers.from) {
                 return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
@@ -247,14 +245,15 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
                 return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
             }
             const fromPath = req.headers.from.toString().sanitizeForPath();
-            const fromCompletePath = path.join(config.databasePath, `/${userID}/`, fromPath).sanitizeForPath(true);
+            const fromCompletePath = path.join(config.databasePath, `/${userID}/`, fromPath);
             const destinationPath = req.headers.destination.toString().sanitizeForPath();
-            const destinationCompletePath = path.join(config.databasePath, `/${userID}/`, destinationPath).sanitizeForPath(true);
-            if (!fromCompletePath.includes(config.databasePath.sanitizeForPath(true)) || !destinationCompletePath.includes(config.databasePath.sanitizeForPath(true))) {
+            const destinationCompletePath = path.join(config.databasePath, `/${userID}/`, destinationPath);
+            if (!fromCompletePath.includes(config.databasePath) || !destinationCompletePath.includes(config.databasePath)) {
                 return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true));
             }
             const fromPathType = await checkPathType(fromCompletePath);
-            const destinationPathType = await checkPathType(destinationCompletePath);
+            const destinationPathType = await checkPathType(destinationPath);
+            console.log(destinationPath);
             console.log(fromCompletePath, '\n', destinationCompletePath);
             if (fromPathType !== 'file' && fromPathType !== 'directory') {
                 return res.status(406).json(Authentication.tools.resErrorPayload("Paths is must be lead to a File/Folder!", true));
@@ -268,6 +267,37 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
                     res.status(200).json({ 'status': `successfully copied File/Folder!`, 'success': false });
                 }
             });
+        }
+        else if (action === 'move') {
+            // Sanitization
+            if (!req.headers.from) {
+                return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
+            }
+            if (!req.headers.destination) {
+                return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
+            }
+            const fromPath = req.headers.from.toString().sanitizeForPath();
+            const fromCompletePath = path.join(config.databasePath, `/${userID}/`, fromPath);
+            const destinationPath = req.headers.destination.toString().sanitizeForPath();
+            const destinationCompletePath = path.join(config.databasePath, `/${userID}/`, destinationPath);
+            if (!fromCompletePath.includes(config.databasePath) || !destinationCompletePath.includes(config.databasePath)) {
+                return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true));
+            }
+            const fromPathType = await checkPathType(fromCompletePath);
+            const destinationPathType = await checkPathType(destinationCompletePath);
+            if ((fromPathType !== 'file' && fromPathType !== 'directory') ||
+                (destinationPathType !== 'file' && destinationPathType !== 'directory')) {
+                return res.status(406).json(Authentication.tools.resErrorPayload("Paths is must be lead to a File/Folder!", true));
+            }
+            // Cutting It
+            try {
+                console.log(fromCompletePath, destinationCompletePath);
+                await fs.rename(fromCompletePath, destinationCompletePath);
+            }
+            catch (error) {
+                return res.status(400).json({ 'status': `unable to move your File/Folder!`, 'success': false });
+            }
+            res.status(200).json({ 'status': `successfully copied File/Folder!`, 'success': false });
         }
         else if (action === 'delete') {
             // Sanitization

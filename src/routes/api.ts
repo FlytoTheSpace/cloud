@@ -33,15 +33,16 @@ type Actions = 'open' | 'copy' | 'cut' | 'delete'
 type FileSystemTypes = 'file' | 'directory' | 'unknown'
 
 const dirRegex: RegExp = /[\:\*\?\"\<\>\|]+/g;
+const RootdirRegex: RegExp = /[\*\?\"\<\>\|]+/g;
 
 declare global {
     interface String {
-        sanitizeForPath(): string; 
+        sanitizeForPath(fromROOT?: boolean): string; 
     }
 }
 
-String.prototype.sanitizeForPath = function(){
-    const sanitizedString: string = this.replace(dirRegex, '').replace(/\.\.+/g, '').replace(/(\/\/+)|(\\+)/g, '/')
+String.prototype.sanitizeForPath = function(fromROOT?: boolean){
+    const sanitizedString: string = (fromROOT? this.replace(RootdirRegex, '') :this.replace(dirRegex, '')).replace(/\.\.+/g, '').replace(/(\/\/+)|(\\+)/g, '/')
     return sanitizedString; 
 }
 
@@ -249,21 +250,21 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
             if (!req.headers.destination) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
             
             const fromPath: string = req.headers.from.toString().sanitizeForPath()
-            const fromCompletePath: string = path.join(config.databasePath, `/${userID}/`, fromPath)
+            const fromCompletePath: string = path.join(config.databasePath, `/${userID}/`, fromPath).sanitizeForPath(true)
             const destinationPath: string = req.headers.destination.toString().sanitizeForPath()
-            const destinationCompletePath: string = path.join(config.databasePath, `/${userID}/`, destinationPath)
+            const destinationCompletePath: string = path.join(config.databasePath, `/${userID}/`, destinationPath).sanitizeForPath(true)
 
-            if(!fromCompletePath.includes(config.databasePath) || !destinationCompletePath.includes(config.databasePath)){ return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true))}
+            if(!fromCompletePath.includes(config.databasePath.sanitizeForPath(true)) || !destinationCompletePath.includes(config.databasePath.sanitizeForPath(true))){ return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true))}
 
             const fromPathType: FileSystemTypes = await checkPathType(fromCompletePath)
             const destinationPathType: FileSystemTypes = await checkPathType(destinationCompletePath)
 
-            if (
-                (fromPathType !== 'file' && fromPathType !== 'directory') || 
-                (destinationPathType !== 'file' && destinationPathType !== 'directory')) {
+            console.log(fromCompletePath,'\n', destinationCompletePath)
+            if (fromPathType !== 'file' && fromPathType !== 'directory') {
                 return res.status(406).json(Authentication.tools.resErrorPayload("Paths is must be lead to a File/Folder!", true))
             }
             // Copying It
+
 
             exec(`cp -r "${fromCompletePath}" "${destinationCompletePath}"`, (error, stdout, stderr)=>{
                 if(error){ res.status(400).json(Authentication.tools.resErrorPayload("Unable to Copy Files!", true))}
@@ -317,7 +318,6 @@ function missingPathandUserID (req: Request, res: Response, next: NextFunction){
     } catch (error) { return res.status(400).send({ 'status': 'invalid user ID', 'success': false }) }
 
     if (!req.headers.path) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
-    console.log(req.headers['content-type'])
     next();
 }
 async function dirExists(path: string): Promise<boolean> {

@@ -3,6 +3,7 @@
 // Other
 
 let clipBoard = []
+let cutlist = []
 const imageFileExts = ["jpg", "jpeg", "png", "gif", "bmp", "tif", "tiff", "webp", "svg", "ico", "psd", "ai", "eps", "raw", "cr2", "nef", "orf", "sr2", "arw", "dng"];
 const videoFileExts = ["mp4", "mov", "avi", "mkv", "wmv", "flv", "webm", "m4v", "mpeg", "mpg", "3gp", "3g2", "ogg", "ogv", "ts", "mts", "m2ts", "vob", "swf"];
   
@@ -177,11 +178,24 @@ async function download(fileElements) {
         document.body.removeChild(link)   
     }
 }
+function cut(){
+    const selectedFiles = Array.from($("#filesection > .file[data-selected='true']", true))
+    if(selectedFiles.length <= 0){ return null }
+
+    clipBoard.length = 0;
+    cutlist.length = 0;
+
+    selectedFiles.forEach(file=>{
+        cutlist.push(file.dataset.path)
+    })
+    console.log(cutlist)
+}
 function copy(){
     const selectedFiles = Array.from($("#filesection > .file[data-selected='true']", true))
     if(selectedFiles.length <= 0){ return null }
 
     clipBoard.length = 0;
+    cutlist.length = 0;
 
     selectedFiles.forEach(file=>{
         clipBoard.push(file.dataset.path)
@@ -191,26 +205,45 @@ function copy(){
 async function paste(){
     console.log("Paste Called")
     const userId = getUserID()
-    if(clipBoard.length < 1){ return null }
+    if(clipBoard.length < 1 && cutlist.length < 1){ return null }
 
     const destination = $('#directoryInputBar').dataset.path
-
-    clipBoard.forEach(async filePath=>{
-        const options = {
-            method: 'GET',
-            headers: {
-                from: filePath,
-                destination: destination,
-                action: 'copy'
+    
+    if(cutlist.length>0){
+        cutlist.forEach(async filePath=>{
+            const options = {
+                method: 'GET',
+                headers: {
+                    from: filePath,
+                    destination: destination,
+                    action: 'move'
+                }
             }
-        }
-        const request = await fetch(`/cloud/files/actions/${userId}`, options)
-        if (!request.ok) { return alert("Unable to Paste your Files!") }
+            const request = await fetch(`/cloud/files/actions/${userId}`, options)
+            if (!request.ok) { return alert("Unable to Move your Files!") }
+    
+            const reponse = await request.json()
+        })
+    } else {
+        clipBoard.forEach(async filePath=>{
+            console.log(filePath)
+            console.log(destination)
+            const options = {
+                method: 'GET',
+                headers: {
+                    from: filePath,
+                    destination: destination,
+                    action: 'copy'
+                }
+            }
+            const request = await fetch(`/cloud/files/actions/${userId}`, options)
+            if (!request.ok) { return alert("Unable to Paste your Files!") }
+    
+            const reponse = await request.json()
+        })
+    }
 
-        const reponse = await request.json()
-    })
-
-    loadFiles($('#directoryInputBar').dataset.path, true)
+    loadFiles($('#directoryInputBar').dataset.path)
 }
 async function open(dataset) {
     if (dataset.type === 'directory') {
@@ -337,8 +370,8 @@ actionBtns.forEach(actionBtn => {
             // Opening File/Directory
             open(fileElements[0].dataset)
         }
-        
         if (btn.id === 'copy'){ copy() }
+        if (btn.id === 'cut'){ cut() }
         if (btn.id === 'paste'){ paste() }
         if (btn.id === 'download') { download(fileElements) }
         if (btn.id === 'delete') { deletes(fileElements) }
