@@ -3,8 +3,28 @@
 // Other
 
 let clipBoard = []
+const imageFileExts = ["jpg", "jpeg", "png", "gif", "bmp", "tif", "tiff", "webp", "svg", "ico", "psd", "ai", "eps", "raw", "cr2", "nef", "orf", "sr2", "arw", "dng"];
+const videoFileExts = ["mp4", "mov", "avi", "mkv", "wmv", "flv", "webm", "m4v", "mpeg", "mpg", "3gp", "3g2", "ogg", "ogv", "ts", "mts", "m2ts", "vob", "swf"];
+  
+const dirRegex = /[\:\*\?\"\<\>\|]+/g;
+
+String.prototype.sanitizeForPath = function(){
+    const sanitizedString = this.replace(dirRegex, '').replace(/\.\.+/g, '').replace(/(\/\/+)|(\\+)/g, '/')
+    return sanitizedString; 
+}
 
 // functions
+
+function isEqual(baseValue, comparisonValues){
+    let oneMatch = false
+    for (let i = 0; i < comparisonValues.length; i++) {
+        if(baseValue === comparisonValues[i]){
+            oneMatch = true
+            break;
+        }
+    }
+    return oneMatch
+}
 
 function getUserID() {
     let userId;
@@ -15,9 +35,24 @@ function getUserID() {
     }
     return userId
 }
-async function loadFiles(path) {
+function getIcon (type, name){
+    if(type == 'directory') { return '/assets/images/icons/light/folder.svg'}
+
+    const nameComponents = name.split('.')
+    const ext = nameComponents[nameComponents.length-1]
+
+    if(isEqual(ext, videoFileExts)){ return '/assets/images/icons/file/video.png'}
+    if(isEqual(ext, imageFileExts)){ return '/assets/images/icons/file/picture.png'}
+
+
+    return '/assets/images/icons/file/txt.png'
+}
+async function loadFiles(inputPath, loadSelected = false) {
     const filesSection = $('#filesection', false)
     filesSection.innerHTML = ''
+
+    const path = inputPath===''?'/': (inputPath.sanitizeForPath().endsWith('/')? inputPath.sanitizeForPath() : inputPath.sanitizeForPath() + '/')
+
     const userId = getUserID()
     const options = {
         method: 'GET',
@@ -47,7 +82,7 @@ async function loadFiles(path) {
         
         <div class="file" data-path="${filepath}" data-type="${type}" data-name="${filename}" data-selected='false' data-timeout="false">
             <div class="icon">
-                <img src="${(type !== 'directory') ? '/assets/images/icons/file/txt.png' : '/assets/images/icons/light/folder.svg'}" alt="">
+                <img src="${getIcon(type, filename)}" alt="">
             </div>
             <div class="name">${filename.length > 40 ? filename.slice(0, 49) + '..' : filename}</div>
         </div>`
@@ -78,6 +113,11 @@ async function loadFiles(path) {
             }
         })
     })
+    if(loadSelected){
+        Array.from(fileElements).forEach(fileElement => {
+            fileElement.click()
+        })
+    }
 }
 // Action Functions
 function preview(fileURL) {
@@ -107,38 +147,41 @@ function preview(fileURL) {
     }
 
 }
-async function download(dataset) {
-    if (dataset.type !== 'file') { return alert("You can only Downloads Files") }
-    const userId = getUserID()
+async function download(fileElements) {
 
-    const options = {
-        method: 'GET',
-        headers: {
-            path: dataset.path,
-            action: 'open'
+    for (let i = 0; i < fileElements.length; i++) {
+        if (fileElements[i].dataset.type !== 'file') { return alert("You can only Downloads Files") }
+        const userId = getUserID()
+
+        const options = {
+            method: 'GET',
+            headers: {
+                path: fileElements[i].dataset.path,
+                action: 'open'
+            }
         }
+
+        const request = await fetch(`/cloud/files/actions/${userId}`, options)
+        if (!request.ok) { return alert("Unable to Download The Files") }
+
+        const File = await request.blob()
+
+        const fileURL = URL.createObjectURL(File)
+
+        const link = document.createElement('a');
+        link.href = fileURL;
+        document.body.appendChild(link)
+        link.download = fileElements[i].dataset.name
+
+        link.click()
+        document.body.removeChild(link)   
     }
-
-    const request = await fetch(`/cloud/files/actions/${userId}`, options)
-    if (!request.ok) { return alert("Unable to Download The Files") }
-
-    const File = await request.blob()
-
-    const fileURL = URL.createObjectURL(File)
-
-    const link = document.createElement('a');
-    link.href = fileURL;
-    document.body.appendChild(link)
-    link.download = dataset.name
-
-    link.click()
-    document.body.removeChild(link)
 }
 function copy(){
     const selectedFiles = Array.from($("#filesection > .file[data-selected='true']", true))
     if(selectedFiles.length <= 0){ return null }
 
-    clipBoard = [];
+    clipBoard.length = 0;
 
     selectedFiles.forEach(file=>{
         clipBoard.push(file.dataset.path)
@@ -146,9 +189,28 @@ function copy(){
     console.log(clipBoard)
 }
 async function paste(){
-    if(clipBoard.length <= 0){ return null }
+    console.log("Paste Called")
+    const userId = getUserID()
+    if(clipBoard.length < 1){ return null }
 
-    console.log(clipBoard)
+    const destination = $('#directoryInputBar').dataset.path
+
+    clipBoard.forEach(async filePath=>{
+        const options = {
+            method: 'GET',
+            headers: {
+                from: filePath,
+                destination: destination,
+                action: 'copy'
+            }
+        }
+        const request = await fetch(`/cloud/files/actions/${userId}`, options)
+        if (!request.ok) { return alert("Unable to Paste your Files!") }
+
+        const reponse = await request.json()
+    })
+
+    loadFiles($('#directoryInputBar').dataset.path, true)
 }
 async function open(dataset) {
     if (dataset.type === 'directory') {
@@ -173,24 +235,34 @@ async function open(dataset) {
         preview(fileURL)
     }
 }
-async function deletes(dataset) {
+async function deletes(FileElements) {
     const userId = getUserID()
 
-    const options = {
-        method: 'GET',
-        headers: {
-            path: dataset.path,
-            type: dataset.type,
-            action: 'delete'
+    for(let i = 0; i<FileElements.length; i++){
+        const options = {
+            method: 'GET',
+            headers: {
+                path: FileElements[i].dataset.path,
+                type: FileElements[i].dataset.type,
+                action: 'delete'
+            }
         }
+        const request = await fetch(`/cloud/files/actions/${userId}`, options)
+        if (!request.ok) { return alert("Unable to Delete your Files") }
+        
+        const reponse = await request.json()
     }
+    $('#filesection').innerHTML = ''
+    await loadFiles($('#directoryInputBar').dataset.path)
+}
+function back(){
+    const path = $('#directoryInputBar').dataset.path.sanitizeForPath()
+    if (path === '' || path === '/'){ return null }
 
-    const request = await fetch(`/cloud/files/actions/${userId}`, options)
-    if (!request.ok) { return alert("Unable to Load The Files") }
+    const pathComponents = path.split('/')
+    const newPath = pathComponents.slice(0, pathComponents.length-(path.endsWith('/')? 2 : 1)).join('/')
 
-    const File = await request.json()
-
-    loadFiles($('#directoryInputBar').dataset.path)
+    loadFiles(newPath)
 }
 
 loadFiles('/') // Loading All The Files/Folders
@@ -220,13 +292,16 @@ uploadBtn.addEventListener('click', async () => {
     }
 
     const UploadRequest = await fetch(`/cloud/files/upload/${userID}`, options)
+    
+    if(!UploadRequest.ok){
+        uploadWindowBackground.display = 'none';
+        return alert("Unable to Upload Your Files!")
+    }
     const UploadReponse = await UploadRequest.json();
-
-    console.log({ Meta: UploadRequest })
-    console.log({ Reponse: UploadRequest })
+    $('#uploadCancel').click()
+    await loadFiles($('#directoryInputBar').dataset.path)
 })
 uploadOpenWindowBtn.addEventListener('click', () => {
-    // Uploading
     uploadWindowBackground.style.display = 'flex'
 })
 $('#uploadCancel').addEventListener('click', () => {
@@ -254,26 +329,20 @@ actionBtns.forEach(actionBtn => {
 
         // Every Selected Element
         const fileElements = Array.from($("#filesection > .file[data-selected='true']", true))
-        if (fileElements.length < 1) { return null }
-
+        
+        console.log(btn.id)
+        
         if (btn.id === 'open') {
+            if (fileElements.length < 1) { return null }
             // Opening File/Directory
             open(fileElements[0].dataset)
-        } else if (btn.id === 'copy'){
-            copy()
-        } else if (btn.id === 'paste'){
-            paste()
-        } else if (btn.id === 'download') {
-            // Download Every one of them
-            fileElements.forEach((fileElement) => {
-                download(fileElement.dataset);
-            })
-        } else if (btn.id === 'delete') {
-            // Deleting Every one of them
-            fileElements.forEach((fileElement) => {
-                deletes(fileElement.dataset);
-            })
         }
+        
+        if (btn.id === 'copy'){ copy() }
+        if (btn.id === 'paste'){ paste() }
+        if (btn.id === 'download') { download(fileElements) }
+        if (btn.id === 'delete') { deletes(fileElements) }
+        if (btn.id === 'back'){back()}
     })
 })
 

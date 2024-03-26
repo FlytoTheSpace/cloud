@@ -16,6 +16,7 @@ import logPrefix from '../assets/log.js';
 import Authentication, { defaultRole } from '../assets/authentication.js';
 import { Stats } from 'fs'
 import multer from 'multer'
+import { exec } from 'child_process';
 const router = express.Router()
 
 router.use(bodyParser.urlencoded({ extended: true }));
@@ -40,7 +41,7 @@ declare global {
 }
 
 String.prototype.sanitizeForPath = function(){
-    const sanitizedString: string = this.replace(dirRegex, '').replace(/\.\./g, '')
+    const sanitizedString: string = this.replace(dirRegex, '').replace(/\.\.+/g, '').replace(/(\/\/+)|(\\+)/g, '/')
     return sanitizedString; 
 }
 
@@ -214,7 +215,6 @@ router.get('/cloud/files/:userid', Authentication.tokenAPI, async (req, res) => 
     }
 })
 router.post('/cloud/files/upload/:userid', Authentication.tokenAPI, missingPathandUserID, cloudUpload.any(), (req, res)=>{
-    console.log(req.files)
     res.status(201).json({'status': 'successfully uploaded your files!', 'success': true})
 })
 router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, res) => {
@@ -237,11 +237,41 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
             if (!req.headers.path) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
 
             const directory: string = req.headers.path.toString().sanitizeForPath()
-            const completeDir = path.join(config.databasePath, `/${userID}/`, directory)
-            if(!completeDir.includes(config.databasePath)){ return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true))}
-            if (await checkPathType(completeDir) !== 'file') { return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a File!", true)) }
+            const completePath = path.join(config.databasePath, `/${userID}/`, directory)
+            if(!completePath.includes(config.databasePath)){ return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true))}
+            if (await checkPathType(completePath) !== 'file') { return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a File!", true)) }
             
-            res.status(200).sendFile(completeDir)
+            res.status(200).sendFile(completePath)
+        } else if(action === 'copy'){
+            console.log("Copy action Called!")
+            // Sanitization
+            if (!req.headers.from) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
+            if (!req.headers.destination) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
+            
+            const fromPath: string = req.headers.from.toString().sanitizeForPath()
+            const fromCompletePath: string = path.join(config.databasePath, `/${userID}/`, fromPath)
+            const destinationPath: string = req.headers.destination.toString().sanitizeForPath()
+            const destinationCompletePath: string = path.join(config.databasePath, `/${userID}/`, destinationPath)
+
+            if(!fromCompletePath.includes(config.databasePath) || !destinationCompletePath.includes(config.databasePath)){ return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true))}
+
+            const fromPathType: FileSystemTypes = await checkPathType(fromCompletePath)
+            const destinationPathType: FileSystemTypes = await checkPathType(destinationCompletePath)
+
+            if (
+                (fromPathType !== 'file' && fromPathType !== 'directory') || 
+                (destinationPathType !== 'file' && destinationPathType !== 'directory')) {
+                return res.status(406).json(Authentication.tools.resErrorPayload("Paths is must be lead to a File/Folder!", true))
+            }
+            // Copying It
+
+            exec(`cp -r "${fromCompletePath}" "${destinationCompletePath}"`, (error, stdout, stderr)=>{
+                if(error){ res.status(400).json(Authentication.tools.resErrorPayload("Unable to Copy Files!", true))}
+                else {
+                    res.status(200).json({ 'status': `successfully copied File/Folder!`, 'success': false })
+                }
+            })
+
         } else if(action === 'delete'){
             // Sanitization
             if (!req.headers.path) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }

@@ -51,11 +51,15 @@
             align-items: center;
         }
 
-        #mainSectionTopBar .actionBtn {
+        .actionBtn {
             margin: 5px;
             height: 50px;
             width: 50px;
-            color: white;
+            color: var(--text);
+            transition: all 0.2s ease;
+        }
+        .actionBtn:hover{
+            background: gray;
         }
 
         #mainSectionTopBar * img {
@@ -70,9 +74,14 @@
             display: flex;
             flex-wrap: wrap;
         }
+        @media screen and (max-width: 900px) {
+            #filesection {
+                padding: 5px;
+            }
+        }
 
         .file {
-            margin: 0 10px;
+            margin: 10px 10px;
             background: var(--bold-background);
             padding: 10px 10px;
             min-height: 150px;
@@ -99,6 +108,13 @@
         .file .icon img {
             max-height: 100%;
             max-width: 100%;
+        }
+        #directoryInputBar{
+            width: 100%;
+            border-radius: 20px;
+            padding: 5px;
+            color: var(--text);
+            background: transparent;
         }
     </style>
 
@@ -245,7 +261,10 @@
                     <button class="circle c-transparent withIcon actionBtn" id="delete"><img src="/assets/images/icons/light/delete.svg" alt=""></button>
                 </div>
                 <div id="dirBar">
+                    <button class="circle c-transparent withIcon actionBtn" id="back"><img src="/assets/images/icons/light/back.svg" alt=""></button>
                     <input type="text" id="directoryInputBar" value="/" data-path="/">
+                    <button class="circle c-transparent withIcon actionBtn" id="createFile"><img src="/assets/images/icons/light/back.svg" alt=""></button>
+                    <button class="circle c-transparent withIcon actionBtn" id="createFolder"><img src="/assets/images/icons/light/back.svg" alt=""></button>
                 </div>
             </div>
             <hr>
