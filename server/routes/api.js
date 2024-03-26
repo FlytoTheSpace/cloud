@@ -15,7 +15,7 @@ import logPrefix from '../assets/log.js';
 import Authentication, { defaultRole } from '../assets/authentication.js';
 import { Stats } from 'fs';
 import multer from 'multer';
-import { exec } from 'child_process';
+import { exec, execSync } from 'child_process';
 const router = express.Router();
 router.use(bodyParser.urlencoded({ extended: true }));
 router.use(cookieParser());
@@ -260,14 +260,13 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
                 return res.status(406).json(Authentication.tools.resErrorPayload("Paths is must be lead to a File/Folder!", true));
             }
             // Copying It
-            exec(`cp -r "${fromCompletePath}" "${destinationCompletePath}"`, (error, stdout, stderr) => {
-                if (error) {
-                    res.status(400).json(Authentication.tools.resErrorPayload("Unable to Copy Files!", true));
-                }
-                else {
-                    res.status(200).json({ 'status': `successfully copied File/Folder!`, 'success': false });
-                }
-            });
+            try {
+                execSync(`cp -r "${fromCompletePath}" "${destinationCompletePath}"`);
+                res.status(200).json({ 'status': `successfully copied File/Folder!`, 'success': false });
+            }
+            catch {
+                res.status(400).json(Authentication.tools.resErrorPayload("Unable to Copy Files!", true));
+            }
         }
         else if (action === 'move') {
             console.log("Move action Called!");
