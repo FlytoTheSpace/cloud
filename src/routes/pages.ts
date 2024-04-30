@@ -15,6 +15,7 @@ const routeFileURL: string[] = routeFiles.map(value => value.slice(0, value.leng
 const router: Router = express.Router()
 
 const TokenAuthenticationRoutes: string[] = ['cloud']
+const adminOnlyRoutes: string[] = []
 
 for (let i = 0; i < routeFiles.length; i++) {
     if (routeFileURL[i] === 'index') {
@@ -28,6 +29,14 @@ for (let i = 0; i < routeFiles.length; i++) {
     } else {
         if (TokenAuthenticationRoutes.includes(routeFileURL[i])) {
             router.get(`/${routeFileURL[i]}`, Authentication.token, (req, res) => {
+                try {
+                    res.sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`))
+                } catch (error) {
+                    logMSG([`Unable to serve file: ${routeFiles[i]}`], [error], "Pages")
+                }
+            })
+        } else if (adminOnlyRoutes.includes(routeFileURL[i])) {
+            router.get(`/${routeFileURL[i]}`, Authentication.tokenAdmin, (req, res) => {
                 try {
                     res.sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`))
                 } catch (error) {

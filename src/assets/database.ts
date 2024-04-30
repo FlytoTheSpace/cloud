@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import logPrefix from './log.js';
 import { logMSG, throwError } from './utils.js';
 import jwt from 'jsonwebtoken';
+import { SessionTokenPayload } from './authentication.js';
 
 export interface accountInterface {
     username: string,
@@ -73,22 +74,22 @@ export const Accounts = {
         email: async (email: string): Promise<boolean> => !(await AccountsModel.findOne({ email }))
     },
     token: {
-        isValid: (token: string): boolean =>{
+        validate: (token: string): accountInterface | null =>{
             try{
-                jwt.verify(token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string))
-                return true
+                const decodedToken: accountInterface = (jwt.verify(token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface)
+                return decodedToken;
             } catch (error){
-                return false
+                return null
             }
         }
     },
     sessionToken: {
-        isValid: (token: string): boolean =>{
+        validate: (sessionToken: string): SessionTokenPayload  | null =>{
             try{
-                jwt.verify(token, (process.env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY as string))
-                return true
+                const decodedSessionToken: SessionTokenPayload = (jwt.verify(sessionToken, (process.env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY as string)) as SessionTokenPayload)
+                return decodedSessionToken
             } catch (error){
-                return false
+                return null
             }
         }
     }

@@ -4,6 +4,7 @@ import { NextFunction, Request, Response } from 'express';
 import UI from './ui.js';
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
+import { access } from 'fs';
 
 export type roles = 'member' | 'admin';
 export const defaultRole: roles = 'member';
@@ -36,9 +37,11 @@ export const Authentication = {
         try {
             // Verifying Token is Valid
             if (!req.cookies.token && !req.headers.authorization) { return res.status(401).send(Authentication.tools.resErrorPayload("Account Required", API)) }
-            if (!Accounts.token.isValid(req.cookies.token.toString() || req.headers.authorization?.toString())) { return res.status(401).send(Authentication.tools.resErrorPayload("Invalid Token", API)) }
+            
             const token: string = req.cookies.token.toString() || req.headers.authorization?.toString();
-            const decodedToken: accountInterface = (jwt.verify(token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface)
+            const decodedToken: accountInterface | null = Accounts.token.validate(token)
+            
+            if (!decodedToken) { return res.status(401).send(Authentication.tools.resErrorPayload("Invalid Token", API)) }
 
             if (!API && Authentication.isSessionTokenValid(req)) {
                 if (adminOnly && decodedToken.role !== 'admin') { return res.status(401).send(Authentication.tools.resErrorPayload("Only Administrators are Allowed!", API)) };
@@ -87,21 +90,22 @@ export const Authentication = {
 
             // Token Verification
             const token: string = req.cookies.token.toString();
-            if (!Accounts.token.isValid(token)) { return false }
-            const decodedToken: accountInterface = (jwt.verify(token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface)
+            const decodedToken: accountInterface | null = Accounts.token.validate(token)
+            if (!decodedToken) { return false }
 
             // Session Token Verification
             const sessionToken: string = req.cookies.sessionToken.toString()
-            if (!Accounts.sessionToken.isValid(sessionToken)) { return false }
-            const decodedSessionToken: SessionTokenPayload = (jwt.verify(sessionToken, (process.env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY as string)) as SessionTokenPayload);
+            const decodedSessionToken: SessionTokenPayload | null = Accounts.sessionToken.validate(sessionToken)
+
+            if (!decodedSessionToken) { return false }
 
             if ((Date.now() - decodedSessionToken.creation) / 1000 > sessionTokenExpiration * 60) { return false }
             if (!req.ip) { return false }
             if (req.ip !== decodedSessionToken.ip) { return false }
 
             // Session Payload Token Verification
-            if (!Accounts.token.isValid(decodedSessionToken.token)) { return false }
-            const decodedSessionPayloadToken: accountInterface = (jwt.verify(token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface)
+            const decodedSessionPayloadToken: accountInterface | null = Accounts.token.validate(token)
+            if (!decodedSessionPayloadToken) { return false }
 
             const isPasswordMatch: boolean = crypto.timingSafeEqual(Buffer.from(decodedToken.password), Buffer.from(decodedSessionPayloadToken.password))
             if (!isPasswordMatch) { return false }
@@ -113,39 +117,43 @@ export const Authentication = {
         }
     },
     isSessionTokenValidandAdmin: (req: Request): {valid: boolean, admin: boolean} => {
-        const reponse: {valid: boolean, admin: boolean} = {valid: false, admin: false}
+        const response: {valid: boolean, admin: boolean} = {valid: false, admin: false}
         try {
             // Checking if Session Token or Token is Missing
-            if (!req.cookies.sessionToken || !req.cookies.token) { return reponse }
+            if (!req.cookies.sessionToken || !req.cookies.token) { return response }
 
             // Token Verification
             const token: string = req.cookies.token.toString();
-            if (!Accounts.token.isValid(token)) { return reponse }
-            const decodedToken: accountInterface = (jwt.verify(token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface)
+            const decodedToken: accountInterface | null = Accounts.token.validate(token)
+            if (!decodedToken) { return response }
 
             // Session Token Verification
             const sessionToken: string = req.cookies.sessionToken.toString()
-            if (!Accounts.sessionToken.isValid(sessionToken)) { return reponse }
-            const decodedSessionToken: SessionTokenPayload = (jwt.verify(sessionToken, (process.env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY as string)) as SessionTokenPayload);
+            const decodedSessionToken: SessionTokenPayload | null = Accounts.sessionToken.validate(sessionToken)
+            if (!decodedSessionToken) { return response }
 
-            if ((Date.now() - decodedSessionToken.creation) / 1000 > sessionTokenExpiration * 60) { return reponse }
-            if (!req.ip) { return reponse }
-            if (req.ip !== decodedSessionToken.ip) { return reponse }
+            if ((Date.now() - decodedSessionToken.creation) / 1000 > sessionTokenExpiration * 60) { return response }
+            if (!req.ip) { return response }
+            if (req.ip !== decodedSessionToken.ip) { return response }
 
             // Session Payload Token Verification
-            if (!Accounts.token.isValid(decodedSessionToken.token)) { return reponse }
-            const decodedSessionPayloadToken: accountInterface = (jwt.verify(token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface)
+            const decodedSessionPayloadToken: accountInterface | null = Accounts.token.validate(decodedSessionToken.token)
 
+            if(!decodedSessionPayloadToken){ return response}
+
+            const isEmailMatch: boolean = crypto.timingSafeEqual(Buffer.from(decodedToken.email), Buffer.from(decodedSessionPayloadToken.email));
             const isPasswordMatch: boolean = crypto.timingSafeEqual(Buffer.from(decodedToken.password), Buffer.from(decodedSessionPayloadToken.password))
-            if (!isPasswordMatch) { return reponse }
-            reponse.valid = true;
 
-            if(decodedToken.role === 'admin'){ reponse.admin = true }
+            if (!isEmailMatch) { return response }
+            if (!isPasswordMatch) { return response }
+            response.valid = true;
 
-            return reponse
+            if(decodedToken.role === 'admin'){ response.admin = true }
+
+            return response
         } catch (error) {
             console.log(error)
-            return reponse
+            return response
         }
     },
     getGeneralInfo: async (req: Request): Promise<getGeneralInfoInterface> => {
@@ -160,12 +168,11 @@ export const Authentication = {
 
                 return info
             }
-
             if (!req.cookies.token) { return info}
-            if (!Accounts.token.isValid(req.cookies.token.toString())) { return info}
-            
-            const token: string = req.cookies.token.toString();
-            const decodedToken: accountInterface = (jwt.verify(token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface)
+            const token: string = req.cookies.token.toString()
+            const decodedToken: accountInterface | null = Accounts.token.validate(token)
+
+            if (!decodedToken) { return info}
 
             // Finding The User in the Database
             const matchedAccount: accountInterface | undefined = (await Accounts.findAccountOne.email(decodedToken.email) as accountInterface | undefined)

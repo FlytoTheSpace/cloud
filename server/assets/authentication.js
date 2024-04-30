@@ -3,6 +3,7 @@ import { Accounts } from './database.js';
 import UI from './ui.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import { access } from 'fs';
 export const defaultRole = 'member';
 const sessionTokenExpiration = 30; // Time before the Session Token Expires (in Minutes)
 export const Authentication = {
@@ -24,11 +25,11 @@ export const Authentication = {
             if (!req.cookies.token && !req.headers.authorization) {
                 return res.status(401).send(Authentication.tools.resErrorPayload("Account Required", API));
             }
-            if (!Accounts.token.isValid(req.cookies.token.toString() || req.headers.authorization?.toString())) {
+            const token = req.cookies.token.toString() || req.headers.authorization?.toString();
+            const decodedToken = Accounts.token.validate(token);
+            if (!decodedToken) {
                 return res.status(401).send(Authentication.tools.resErrorPayload("Invalid Token", API));
             }
-            const token = req.cookies.token.toString() || req.headers.authorization?.toString();
-            const decodedToken = jwt.verify(token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
             if (!API && Authentication.isSessionTokenValid(req)) {
                 if (adminOnly && decodedToken.role !== 'admin') {
                     return res.status(401).send(Authentication.tools.resErrorPayload("Only Administrators are Allowed!", API));
@@ -81,16 +82,16 @@ export const Authentication = {
             }
             // Token Verification
             const token = req.cookies.token.toString();
-            if (!Accounts.token.isValid(token)) {
+            const decodedToken = Accounts.token.validate(token);
+            if (!decodedToken) {
                 return false;
             }
-            const decodedToken = jwt.verify(token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
             // Session Token Verification
             const sessionToken = req.cookies.sessionToken.toString();
-            if (!Accounts.sessionToken.isValid(sessionToken)) {
+            const decodedSessionToken = Accounts.sessionToken.validate(sessionToken);
+            if (!decodedSessionToken) {
                 return false;
             }
-            const decodedSessionToken = jwt.verify(sessionToken, process.env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY);
             if ((Date.now() - decodedSessionToken.creation) / 1000 > sessionTokenExpiration * 60) {
                 return false;
             }
@@ -101,10 +102,10 @@ export const Authentication = {
                 return false;
             }
             // Session Payload Token Verification
-            if (!Accounts.token.isValid(decodedSessionToken.token)) {
+            const decodedSessionPayloadToken = Accounts.token.validate(token);
+            if (!decodedSessionPayloadToken) {
                 return false;
             }
-            const decodedSessionPayloadToken = jwt.verify(token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
             const isPasswordMatch = crypto.timingSafeEqual(Buffer.from(decodedToken.password), Buffer.from(decodedSessionPayloadToken.password));
             if (!isPasswordMatch) {
                 return false;
@@ -117,51 +118,55 @@ export const Authentication = {
         }
     },
     isSessionTokenValidandAdmin: (req) => {
-        const reponse = { valid: false, admin: false };
+        const response = { valid: false, admin: false };
         try {
             // Checking if Session Token or Token is Missing
             if (!req.cookies.sessionToken || !req.cookies.token) {
-                return reponse;
+                return response;
             }
             // Token Verification
             const token = req.cookies.token.toString();
-            if (!Accounts.token.isValid(token)) {
-                return reponse;
+            const decodedToken = Accounts.token.validate(token);
+            if (!decodedToken) {
+                return response;
             }
-            const decodedToken = jwt.verify(token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
             // Session Token Verification
             const sessionToken = req.cookies.sessionToken.toString();
-            if (!Accounts.sessionToken.isValid(sessionToken)) {
-                return reponse;
+            const decodedSessionToken = Accounts.sessionToken.validate(sessionToken);
+            if (!decodedSessionToken) {
+                return response;
             }
-            const decodedSessionToken = jwt.verify(sessionToken, process.env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY);
             if ((Date.now() - decodedSessionToken.creation) / 1000 > sessionTokenExpiration * 60) {
-                return reponse;
+                return response;
             }
             if (!req.ip) {
-                return reponse;
+                return response;
             }
             if (req.ip !== decodedSessionToken.ip) {
-                return reponse;
+                return response;
             }
             // Session Payload Token Verification
-            if (!Accounts.token.isValid(decodedSessionToken.token)) {
-                return reponse;
+            const decodedSessionPayloadToken = Accounts.token.validate(decodedSessionToken.token);
+            if (!decodedSessionPayloadToken) {
+                return response;
             }
-            const decodedSessionPayloadToken = jwt.verify(token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
+            const isEmailMatch = crypto.timingSafeEqual(Buffer.from(decodedToken.email), Buffer.from(decodedSessionPayloadToken.email));
             const isPasswordMatch = crypto.timingSafeEqual(Buffer.from(decodedToken.password), Buffer.from(decodedSessionPayloadToken.password));
+            if (!isEmailMatch) {
+                return response;
+            }
             if (!isPasswordMatch) {
-                return reponse;
+                return response;
             }
-            reponse.valid = true;
+            response.valid = true;
             if (decodedToken.role === 'admin') {
-                reponse.admin = true;
+                response.admin = true;
             }
-            return reponse;
+            return response;
         }
         catch (error) {
             console.log(error);
-            return reponse;
+            return response;
         }
     },
     getGeneralInfo: async (req) => {
@@ -178,11 +183,11 @@ export const Authentication = {
             if (!req.cookies.token) {
                 return info;
             }
-            if (!Accounts.token.isValid(req.cookies.token.toString())) {
+            const token = req.cookies.token.toString();
+            const decodedToken = Accounts.token.validate(token);
+            if (!decodedToken) {
                 return info;
             }
-            const token = req.cookies.token.toString();
-            const decodedToken = jwt.verify(token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
             // Finding The User in the Database
             const matchedAccount = await Accounts.findAccountOne.email(decodedToken.email);
             if (!matchedAccount) {

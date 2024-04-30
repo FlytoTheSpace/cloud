@@ -10,6 +10,7 @@ const routeFiles = files.filter(value => value.endsWith('.html'));
 const routeFileURL = routeFiles.map(value => value.slice(0, value.length - 5).toLowerCase().replace(/[^a-z]/g, '-'));
 const router = express.Router();
 const TokenAuthenticationRoutes = ['cloud'];
+const adminOnlyRoutes = [];
 for (let i = 0; i < routeFiles.length; i++) {
     if (routeFileURL[i] === 'index') {
         router.get(`/`, (req, res) => {
@@ -24,6 +25,16 @@ for (let i = 0; i < routeFiles.length; i++) {
     else {
         if (TokenAuthenticationRoutes.includes(routeFileURL[i])) {
             router.get(`/${routeFileURL[i]}`, Authentication.token, (req, res) => {
+                try {
+                    res.sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`));
+                }
+                catch (error) {
+                    logMSG([`Unable to serve file: ${routeFiles[i]}`], [error], "Pages");
+                }
+            });
+        }
+        else if (adminOnlyRoutes.includes(routeFileURL[i])) {
+            router.get(`/${routeFileURL[i]}`, Authentication.tokenAdmin, (req, res) => {
                 try {
                     res.sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`));
                 }

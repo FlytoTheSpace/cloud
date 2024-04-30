@@ -60,24 +60,24 @@ export const Accounts = {
         email: async (email) => !(await AccountsModel.findOne({ email }))
     },
     token: {
-        isValid: (token) => {
+        validate: (token) => {
             try {
-                jwt.verify(token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
-                return true;
+                const decodedToken = jwt.verify(token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
+                return decodedToken;
             }
             catch (error) {
-                return false;
+                return null;
             }
         }
     },
     sessionToken: {
-        isValid: (token) => {
+        validate: (sessionToken) => {
             try {
-                jwt.verify(token, process.env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY);
-                return true;
+                const decodedSessionToken = jwt.verify(sessionToken, process.env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY);
+                return decodedSessionToken;
             }
             catch (error) {
-                return false;
+                return null;
             }
         }
     }
