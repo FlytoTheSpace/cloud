@@ -17,6 +17,7 @@ import Authentication, { defaultRole } from '../assets/authentication.js';
 import { Stats } from 'fs'
 import multer from 'multer'
 import { exec, execSync } from 'child_process';
+import { buffer } from 'stream/consumers';
 const router = express.Router()
 
 router.use(bodyParser.urlencoded({ extended: true }));
@@ -31,35 +32,46 @@ interface FileObject {
 }
 type Actions = 'open' | 'copy' | 'cut' | 'delete'
 type FileSystemTypes = 'file' | 'directory' | 'unknown'
+type validFileSystemTypes = 'file' | 'directory'
 
 const dirRegex: RegExp = /[\:\*\?\"\<\>\|]+/g;
 const RootdirRegex: RegExp = /[\*\?\"\<\>\|]+/g;
 
 declare global {
     interface String {
-        sanitizeForPath(fromROOT?: boolean): string; 
+        sanitizeForPath(fromROOT?: boolean): string;
+        sanitizeFileNameForPath(): string
+        sanitizeFolderNameForPath(): string
     }
 }
 
-String.prototype.sanitizeForPath = function(fromROOT?: boolean){
-    const sanitizedString: string = (fromROOT? this.replace(RootdirRegex, '') :this.replace(dirRegex, '')).replace(/\.\.+/g, '').replace(/(\/\/+)|(\\+)/g, '/')
-    return sanitizedString; 
+String.prototype.sanitizeForPath = function (fromROOT?: boolean) {
+    const sanitizedString: string = (fromROOT ? this.replace(RootdirRegex, '') : this.replace(dirRegex, '')).replace(/\.\.+/g, '').replace(/(\/\/+)|(\\+)/g, '/')
+    return sanitizedString;
+}
+String.prototype.sanitizeFileNameForPath = function () {
+    const sanitizedString: string = this.replace(/[\\\/\:\*\?\"\<\>\|]+/g, '')
+    return sanitizedString;
+}
+String.prototype.sanitizeFolderNameForPath = function () {
+    const sanitizedString: string = this.replace(/[\\\/\:\*\?\"\<\>\|\.]+/g, '')
+    return sanitizedString;
 }
 
 const cloudStorage = multer.diskStorage({
-    destination: (req: Request, file, next)=>{
+    destination: (req: Request, file, next) => {
         const userId: number = (req.params.userid === 'u') ? (jwt.verify(req.cookies.token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface).userID : parseInt(req.params.userid);
 
         const directory = ((req.headers.path as any).toString() as string).sanitizeForPath()
         const destinationPath = path.join(config.databasePath, `/${userId}/`, directory)
         next(null, destinationPath);
     },
-    filename: (req, file, next)=>{
-        next(null,  file.originalname)
+    filename: (req, file, next) => {
+        next(null, file.originalname)
     }
 })
 
-const cloudUpload = multer({ storage: cloudStorage})
+const cloudUpload = multer({ storage: cloudStorage })
 
 // Login Submit API
 router.post('/submit/login', async (req, res) => {
@@ -111,6 +123,7 @@ router.post('/submit/login', async (req, res) => {
     }
 
     // on Success:
+    console.log(`[Authentication] ${matchedAccount.username} has logged in.`)
     const expirationDate: Date = new Date();
     expirationDate.setFullYear(expirationDate.getFullYear() + 1);
 
@@ -215,10 +228,10 @@ router.get('/cloud/files/:userid', Authentication.tokenAPI, async (req, res) => 
         return res.status(400).json(Authentication.tools.resErrorPayload("Bad Request", true))
     }
 })
-router.post('/cloud/files/upload/:userid', Authentication.tokenAPI, missingPathandUserID, cloudUpload.any(), (req, res)=>{
-    res.status(201).json({'status': 'successfully uploaded your files!', 'success': true})
+router.post('/cloud/files/upload/:userid', Authentication.tokenAPI, missingPathandUserID, cloudUpload.any(), (req, res) => {
+    res.status(201).json({ 'status': 'successfully uploaded your files!', 'success': true })
 })
-router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, res) => {
+router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, res) => {
     // Sanitization
     if (!req.params.userid) { return res.status(400).send({ 'status': 'please provide userid', 'success': false }) }
     let userID: number;
@@ -227,33 +240,33 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
     } catch (error) { return res.status(400).send({ 'status': 'invalid user ID', 'success': false }) }
 
     if (!req.headers.action) { return res.status(406).json(Authentication.tools.resErrorPayload("An Action must be Provided", true)) }
-    
+
     const action: string = req.headers.action.toString()
 
-    if(action !== "open" && action !== "copy" && action !== "move" && action !== "delete"){ return res.status(405).json(Authentication.tools.resErrorPayload("Invalid Operation!", true)) }
+    if (action !== "open" && action !== "copy" && action !== "move" && action !== "delete" && action !== "create-file" && action !== "create-folder") { return res.status(405).json(Authentication.tools.resErrorPayload("Invalid Operation!", true)) }
 
     try {
         if (action === 'open') {
             // Sanitization
-            if (!req.headers.path) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
+            if (!req.body.path) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
 
-            const directory: string = req.headers.path.toString().sanitizeForPath()
+            const directory: string = req.body.path.toString().sanitizeForPath()
             const completePath = path.join(config.databasePath, `/${userID}/`, directory)
-            if(!completePath.includes(config.databasePath)){ return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true))}
+            if (!completePath.includes(config.databasePath)) { return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true)) }
             if (await checkPathType(completePath) !== 'file') { return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a File!", true)) }
-            
+
             res.status(200).sendFile(completePath)
-        } else if(action === 'copy'){
+        } else if (action === 'copy') {
             // Sanitization
-            if (!req.headers.from) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
-            if (!req.headers.destination) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
-            
-            const fromPath: string = req.headers.from.toString().sanitizeForPath()
+            if (!req.body.from) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
+            if (!req.body.destination) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
+
+            const fromPath: string = req.body.from.toString().sanitizeForPath()
             const fromCompletePath: string = path.join(config.databasePath, `/${userID}/`, fromPath).sanitizeForPath(true)
-            const destinationPath: string = req.headers.destination.toString().sanitizeForPath()
+            const destinationPath: string = req.body.destination.toString().sanitizeForPath()
             const destinationCompletePath: string = path.join(config.databasePath, `/${userID}/`, destinationPath).sanitizeForPath(true)
 
-            if(!fromCompletePath.includes(config.databasePath.sanitizeForPath(true)) || !destinationCompletePath.includes(config.databasePath.sanitizeForPath(true))){ return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true))}
+            if (!fromCompletePath.includes(config.databasePath.sanitizeForPath(true)) || !destinationCompletePath.includes(config.databasePath.sanitizeForPath(true))) { return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true)) }
 
             const fromPathType: FileSystemTypes = await checkPathType(fromCompletePath)
             const destinationPathType: FileSystemTypes = await checkPathType(destinationCompletePath)
@@ -262,24 +275,24 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
                 return res.status(406).json(Authentication.tools.resErrorPayload("Paths is must be lead to a File/Folder!", true))
             }
             // Copying It
-            try{
+            try {
                 execSync(`cp -r "${fromCompletePath}" "${destinationCompletePath}"`)
                 res.status(200).json({ 'status': `successfully copied File/Folder!`, 'success': false })
-            } catch{
+            } catch {
                 res.status(400).json(Authentication.tools.resErrorPayload("Unable to Copy Files!", true))
             }
-            
-        } else if(action === 'move'){
+
+        } else if (action === 'move') {
             // Sanitization
-            if (!req.headers.from) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
-            if (!req.headers.destination) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
-            
-            const fromPath: string = req.headers.from.toString().sanitizeForPath()
+            if (!req.body.from) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
+            if (!req.body.destination) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
+
+            const fromPath: string = req.body.from.toString().sanitizeForPath()
             const fromCompletePath: string = path.join(config.databasePath, `/${userID}/`, fromPath).sanitizeForPath(true)
-            const destinationPath: string = req.headers.destination.toString().sanitizeForPath()
+            const destinationPath: string = req.body.destination.toString().sanitizeForPath()
             const destinationCompletePath: string = path.join(config.databasePath, `/${userID}/`, destinationPath).sanitizeForPath(true)
 
-            if(!fromCompletePath.includes(config.databasePath.sanitizeForPath(true)) || !destinationCompletePath.includes(config.databasePath.sanitizeForPath(true))){ return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true))}
+            if (!fromCompletePath.includes(config.databasePath.sanitizeForPath(true)) || !destinationCompletePath.includes(config.databasePath.sanitizeForPath(true))) { return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true)) }
 
             const fromPathType: FileSystemTypes = await checkPathType(fromCompletePath)
             const destinationPathType: FileSystemTypes = await checkPathType(destinationCompletePath)
@@ -288,34 +301,69 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
                 return res.status(406).json(Authentication.tools.resErrorPayload("Paths is must be lead to a File/Folder!", true))
             }
             // Moving It
-            try{
+            try {
                 await fs.rename(fromCompletePath, destinationCompletePath)
 
                 res.status(200).json({ 'status': `successfully Moved Your File!`, 'success': false })
-            } catch{
+            } catch {
                 return res.status(406).json(Authentication.tools.resErrorPayload("Unable to Move Your Files!", true))
             }
 
-        } else if(action === 'delete'){
+        } else if (action === 'delete') {
             // Sanitization
-            if (!req.headers.path) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
-            
-            const directory: string = req.headers.path.toString().sanitizeForPath()
-            const completeDir: string = path.join(config.databasePath, `/${userID}/`, directory)
-            
-            if(!completeDir.includes(config.databasePath)){ return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true))}
+            if (!req.body.path) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
 
-            const PathType: FileSystemTypes = await checkPathType(completeDir)
+            const directory: string = req.body.path.toString().sanitizeForPath()
+            const completePath: string = path.join(config.databasePath, `/${userID}/`, directory)
+
+            if (!completePath.includes(config.databasePath)) { return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true)) }
+
+            const PathType: FileSystemTypes = await checkPathType(completePath)
 
             if (PathType === 'unknown') { return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a File/Folder!", true)) }
-            
-            if (PathType === 'file'){
-                await fs.unlink(completeDir)
+
+            if (PathType === 'file') {
+                await fs.unlink(completePath)
             } else {
-                await fs.rm(completeDir, {force: true, recursive: true})
+                await fs.rm(completePath, { force: true, recursive: true })
             }
 
             res.status(200).json({ 'status': `successfully deleted The ${PathType}!`, 'success': false })
+        } else if (action === 'create-file') {
+            // Sanitization
+            if (!req.body.path) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
+            if (!req.body.name) { return res.status(406).json(Authentication.tools.resErrorPayload("a Name must be Provided", true)) }
+            const data = Buffer.from(req.body.data ? req.body.data : '')
+
+            const name: string = (req.body.name.toString() as string).sanitizeFileNameForPath()
+            if (name.length > config.serverConfig.namesizelimit) { return res.status(406).json(Authentication.tools.resErrorPayload("Name Too Big!", true)) }
+
+            const directory: string = req.body.path.toString().sanitizeForPath()
+            const completePath: string = path.join(config.databasePath, `/${userID}/`, directory)
+            if (!completePath.includes(config.databasePath)) { return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true)) }
+            const PathType: FileSystemTypes = await checkPathType(completePath)
+            if (PathType === 'unknown') { return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a File/Folder!", true)) }
+
+            fs.writeFile(path.join(completePath, name), data)
+
+            res.status(200).json({ 'status': `successfully created The File!`, 'success': false })
+        } else if (action === 'create-folder') {
+            // Sanitization
+            if (!req.body.path) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
+            if (!req.body.name) { return res.status(406).json(Authentication.tools.resErrorPayload("a Name must be Provided", true)) }
+
+            const name: string = (req.body.name.toString() as string).sanitizeFolderNameForPath()
+            if (name.length > config.serverConfig.namesizelimit) { return res.status(406).json(Authentication.tools.resErrorPayload("Name Too Big!", true)) }
+
+            const directory: string = req.body.path.toString().sanitizeForPath()
+            const completePath: string = path.join(config.databasePath, `/${userID}/`, directory)
+            if (!completePath.includes(config.databasePath)) { return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true)) }
+            const PathType: FileSystemTypes = await checkPathType(completePath)
+            if (PathType === 'unknown') { return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a File/Folder!", true)) }
+
+            fs.mkdir(path.join(completePath, name))
+
+            res.status(200).json({ 'status': `successfully created The File!`, 'success': false })
         }
     } catch (error) {
         console.log(error)
@@ -324,7 +372,7 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
 })
 router.get('/u/info/userid', Authentication.tokenAPI, (req, res) => {
     try {
-        if(!req.cookies.token){ res.status(200).json({ 'userID': null }) }
+        if (!req.cookies.token) { res.status(200).json({ 'userID': null }) }
         const userID: number = (jwt.verify(req.cookies.token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface).userID
 
         res.status(200).json({ 'userID': userID })
@@ -334,7 +382,7 @@ router.get('/u/info/userid', Authentication.tokenAPI, (req, res) => {
     }
 })
 
-function missingPathandUserID (req: Request, res: Response, next: NextFunction){
+function missingPathandUserID(req: Request, res: Response, next: NextFunction) {
     if (!req.params.userid) { return res.status(400).send({ 'status': 'please provide userid', 'success': false }) }
     try {
         (req.params.userid === 'u') ? (jwt.verify(req.cookies.token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface).userID : parseInt(req.params.userid);

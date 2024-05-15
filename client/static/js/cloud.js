@@ -1,4 +1,3 @@
-'use strict';
 // The Script must use the defer Attribute otherwise it won't work
 // Other
 
@@ -62,7 +61,7 @@ async function loadFiles(inputPath, loadSelected = false) {
         }
     }
     const request = await fetch(`/cloud/files/${userId}`, options)
-    if (!request.ok) { return alert("Unable to Load Files") }
+    if (!request.ok) { return showError("Unable to Load Files") }
     $('#directoryInputBar').value = path
     $('#directoryInputBar').dataset.path = path
 
@@ -123,7 +122,7 @@ async function loadFiles(inputPath, loadSelected = false) {
 // Action Functions
 function preview(fileURL) {
     const previewWindow = $('#previewWindow');
-    const previewElement = $('#preview');
+    const previewElement = $('#preview'); // Iframe
     const previewCloseButton = $('#previewCloseButton');
 
     previewWindow.style.display = 'block';
@@ -151,19 +150,22 @@ function preview(fileURL) {
 async function download(fileElements) {
 
     for (let i = 0; i < fileElements.length; i++) {
-        if (fileElements[i].dataset.type !== 'file') { return alert("You can only Downloads Files") }
+        if (fileElements[i].dataset.type !== 'file') { return showError("You can only Downloads Files") }
         const userId = getUserID()
 
         const options = {
-            method: 'GET',
+            method: 'POST',
             headers: {
-                path: fileElements[i].dataset.path,
+                "Content-Type": 'application/json',
                 action: 'open'
-            }
+            },
+            body: JSON.stringify({
+                path: fileElements[i].dataset.path,
+            })
         }
 
         const request = await fetch(`/cloud/files/actions/${userId}`, options)
-        if (!request.ok) { return alert("Unable to Download The Files") }
+        if (!request.ok) { return showError("Unable to Download The Files") }
 
         const File = await request.blob()
 
@@ -212,15 +214,18 @@ async function paste(){
     if(cutlist.length>0){
         cutlist.forEach(async ({name, path})=>{
             const options = {
-                method: 'GET',
+                method: 'POST',
                 headers: {
+                    "Content-Type": "application/json",
+                    'action': 'move'
+                },
+                body: JSON.stringify({
                     from: path,
                     destination: destination + name,
-                    action: 'move'
-                }
+                })
             }
             const request = await fetch(`/cloud/files/actions/${userId}`, options)
-            if (!request.ok) { return alert("Unable to Move your Files!") }
+            if (!request.ok) { return showError("Unable to Move your Files!") }
     
             const reponse = await request.json()
         })
@@ -229,15 +234,18 @@ async function paste(){
             console.log(filePath)
             console.log(destination)
             const options = {
-                method: 'GET',
+                method: 'POST',
                 headers: {
+                    "Content-Type": "application/json",
+                    'action': 'copy'
+                },
+                body: JSON.stringify({
                     from: filePath,
                     destination: destination,
-                    action: 'copy'
-                }
+                })
             }
             const request = await fetch(`/cloud/files/actions/${userId}`, options)
-            if (!request.ok) { return alert("Unable to Paste your Files!") }
+            if (!request.ok) { return showError("Unable to Paste your Files!") }
     
             const reponse = await request.json()
         })
@@ -252,15 +260,17 @@ async function open(dataset) {
         const userId = getUserID()
 
         const options = {
-            method: 'GET',
+            method: 'POST',
             headers: {
+                "Content-Type": "application/json",
+                'action': 'open'
+            },
+            body: JSON.stringify({
                 path: dataset.path,
-                action: 'open'
-            }
+            })
         }
-
         const request = await fetch(`/cloud/files/actions/${userId}`, options)
-        if (!request.ok) { return alert("Unable to Open The File") }
+        if (!request.ok) { return showError("Unable to Open The File") }
 
         const File = await request.blob()
 
@@ -273,15 +283,18 @@ async function deletes(FileElements) {
 
     for(let i = 0; i<FileElements.length; i++){
         const options = {
-            method: 'GET',
+            method: 'POST',
             headers: {
+                "Content-Type": "application/json",
+                'action': 'delete'
+            },
+            body: JSON.stringify({
                 path: FileElements[i].dataset.path,
                 type: FileElements[i].dataset.type,
-                action: 'delete'
-            }
+            })
         }
         const request = await fetch(`/cloud/files/actions/${userId}`, options)
-        if (!request.ok) { return alert("Unable to Delete your Files") }
+        if (!request.ok) { return showError("Unable to Delete your Files") }
         
         const reponse = await request.json()
     }
@@ -296,6 +309,45 @@ function back(){
     const newPath = pathComponents.slice(0, pathComponents.length-(path.endsWith('/')? 2 : 1)).join('/')
 
     loadFiles(newPath)
+}
+async function createFile(path, name, data){
+    const options = {
+        "headers": {
+            "Content-Type": "application/json",
+	    	'action': 'create-file'
+        },
+        "referrer": "http://192.168.1.200/cloud/u/",
+        "body":JSON.stringify({path: path, name: name, data: data}),
+        "method": "POST",
+        "mode": "cors"
+    }
+    const userID = getUserID()
+    const request = await fetch(`http://192.168.1.200/cloud/files/actions/${userID}`, options)
+    if(!request.ok){ return showError("Unable to Open The File") }
+    const reponse = await request.json()
+    
+    await loadFiles($('#directoryInputBar').dataset.path)
+}
+async function createFolder(path, name){
+    const options = {
+        "headers": {
+            "Content-Type": "application/json",
+	    	'action': 'create-folder'
+        },
+        "referrer": "http://192.168.1.200/cloud/u/",
+        "body":JSON.stringify({path: path, name: name}),
+        "method": "POST",
+        "mode": "cors"
+    }
+    const userID = getUserID()
+    const request = await fetch(`http://192.168.1.200/cloud/files/actions/${userID}`, options)
+    if(!request.ok){ return showError("Unable to Open The File") }
+    const reponse = await request.json()
+    
+    await loadFiles($('#directoryInputBar').dataset.path)
+}
+function showError(msg){
+    alert(msg)
 }
 
 loadFiles('/') // Loading All The Files/Folders
@@ -328,7 +380,7 @@ uploadBtn.addEventListener('click', async () => {
     
     if(!UploadRequest.ok){
         uploadWindowBackground.display = 'none';
-        return alert("Unable to Upload Your Files!")
+        return showError("Unable to Upload Your Files!")
     }
     const UploadReponse = await UploadRequest.json();
     $('#uploadCancel').click()

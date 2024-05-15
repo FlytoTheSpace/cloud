@@ -7,14 +7,16 @@ import {directoryExists} from './utils.js'
 
 // Config Schema
 interface configFileInterface {
-    [key: string]: boolean | string,
+    [key: string]: boolean | string | number,
     'devMode': boolean,
-    'databaseDir': string
+    'databaseDir': string,
+    'namesizelimit': number
 }
 // Defaults
 const defaultconfigFile = {
     'devMode': false,
-    'databaseDir': "$ROOT/database"
+    'databaseDir': "$ROOT/database",
+    'namesizelimit': 255
 }
 
 let serverConfig: configFileInterface

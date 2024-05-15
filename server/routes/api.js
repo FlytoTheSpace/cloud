@@ -16,6 +16,7 @@ import Authentication, { defaultRole } from '../assets/authentication.js';
 import { Stats } from 'fs';
 import multer from 'multer';
 import { exec, execSync } from 'child_process';
+import { buffer } from 'stream/consumers';
 const router = express.Router();
 router.use(bodyParser.urlencoded({ extended: true }));
 router.use(cookieParser());
@@ -24,6 +25,14 @@ const dirRegex = /[\:\*\?\"\<\>\|]+/g;
 const RootdirRegex = /[\*\?\"\<\>\|]+/g;
 String.prototype.sanitizeForPath = function (fromROOT) {
     const sanitizedString = (fromROOT ? this.replace(RootdirRegex, '') : this.replace(dirRegex, '')).replace(/\.\.+/g, '').replace(/(\/\/+)|(\\+)/g, '/');
+    return sanitizedString;
+};
+String.prototype.sanitizeFileNameForPath = function () {
+    const sanitizedString = this.replace(/[\\\/\:\*\?\"\<\>\|]+/g, '');
+    return sanitizedString;
+};
+String.prototype.sanitizeFolderNameForPath = function () {
+    const sanitizedString = this.replace(/[\\\/\:\*\?\"\<\>\|\.]+/g, '');
     return sanitizedString;
 };
 const cloudStorage = multer.diskStorage({
@@ -91,6 +100,7 @@ router.post('/submit/login', async (req, res) => {
         return res.status(500).json({ 'status': 'internal Server Error, please try again later...', 'success': false });
     }
     // on Success:
+    console.log(`[Authentication] ${matchedAccount.username} has logged in.`);
     const expirationDate = new Date();
     expirationDate.setFullYear(expirationDate.getFullYear() + 1);
     const token = jwt.sign(matchedAccount, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
@@ -202,7 +212,7 @@ router.get('/cloud/files/:userid', Authentication.tokenAPI, async (req, res) => 
 router.post('/cloud/files/upload/:userid', Authentication.tokenAPI, missingPathandUserID, cloudUpload.any(), (req, res) => {
     res.status(201).json({ 'status': 'successfully uploaded your files!', 'success': true });
 });
-router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, res) => {
+router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, res) => {
     // Sanitization
     if (!req.params.userid) {
         return res.status(400).send({ 'status': 'please provide userid', 'success': false });
@@ -218,16 +228,16 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
         return res.status(406).json(Authentication.tools.resErrorPayload("An Action must be Provided", true));
     }
     const action = req.headers.action.toString();
-    if (action !== "open" && action !== "copy" && action !== "move" && action !== "delete") {
+    if (action !== "open" && action !== "copy" && action !== "move" && action !== "delete" && action !== "create-file" && action !== "create-folder") {
         return res.status(405).json(Authentication.tools.resErrorPayload("Invalid Operation!", true));
     }
     try {
         if (action === 'open') {
             // Sanitization
-            if (!req.headers.path) {
+            if (!req.body.path) {
                 return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
             }
-            const directory = req.headers.path.toString().sanitizeForPath();
+            const directory = req.body.path.toString().sanitizeForPath();
             const completePath = path.join(config.databasePath, `/${userID}/`, directory);
             if (!completePath.includes(config.databasePath)) {
                 return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true));
@@ -239,15 +249,15 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
         }
         else if (action === 'copy') {
             // Sanitization
-            if (!req.headers.from) {
+            if (!req.body.from) {
                 return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
             }
-            if (!req.headers.destination) {
+            if (!req.body.destination) {
                 return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
             }
-            const fromPath = req.headers.from.toString().sanitizeForPath();
+            const fromPath = req.body.from.toString().sanitizeForPath();
             const fromCompletePath = path.join(config.databasePath, `/${userID}/`, fromPath).sanitizeForPath(true);
-            const destinationPath = req.headers.destination.toString().sanitizeForPath();
+            const destinationPath = req.body.destination.toString().sanitizeForPath();
             const destinationCompletePath = path.join(config.databasePath, `/${userID}/`, destinationPath).sanitizeForPath(true);
             if (!fromCompletePath.includes(config.databasePath.sanitizeForPath(true)) || !destinationCompletePath.includes(config.databasePath.sanitizeForPath(true))) {
                 return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true));
@@ -268,15 +278,15 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
         }
         else if (action === 'move') {
             // Sanitization
-            if (!req.headers.from) {
+            if (!req.body.from) {
                 return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
             }
-            if (!req.headers.destination) {
+            if (!req.body.destination) {
                 return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
             }
-            const fromPath = req.headers.from.toString().sanitizeForPath();
+            const fromPath = req.body.from.toString().sanitizeForPath();
             const fromCompletePath = path.join(config.databasePath, `/${userID}/`, fromPath).sanitizeForPath(true);
-            const destinationPath = req.headers.destination.toString().sanitizeForPath();
+            const destinationPath = req.body.destination.toString().sanitizeForPath();
             const destinationCompletePath = path.join(config.databasePath, `/${userID}/`, destinationPath).sanitizeForPath(true);
             if (!fromCompletePath.includes(config.databasePath.sanitizeForPath(true)) || !destinationCompletePath.includes(config.databasePath.sanitizeForPath(true))) {
                 return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true));
@@ -297,25 +307,74 @@ router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, 
         }
         else if (action === 'delete') {
             // Sanitization
-            if (!req.headers.path) {
+            if (!req.body.path) {
                 return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
             }
-            const directory = req.headers.path.toString().sanitizeForPath();
-            const completeDir = path.join(config.databasePath, `/${userID}/`, directory);
-            if (!completeDir.includes(config.databasePath)) {
+            const directory = req.body.path.toString().sanitizeForPath();
+            const completePath = path.join(config.databasePath, `/${userID}/`, directory);
+            if (!completePath.includes(config.databasePath)) {
                 return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true));
             }
-            const PathType = await checkPathType(completeDir);
+            const PathType = await checkPathType(completePath);
             if (PathType === 'unknown') {
                 return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a File/Folder!", true));
             }
             if (PathType === 'file') {
-                await fs.unlink(completeDir);
+                await fs.unlink(completePath);
             }
             else {
-                await fs.rm(completeDir, { force: true, recursive: true });
+                await fs.rm(completePath, { force: true, recursive: true });
             }
             res.status(200).json({ 'status': `successfully deleted The ${PathType}!`, 'success': false });
+        }
+        else if (action === 'create-file') {
+            // Sanitization
+            if (!req.body.path) {
+                return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
+            }
+            if (!req.body.name) {
+                return res.status(406).json(Authentication.tools.resErrorPayload("a Name must be Provided", true));
+            }
+            const data = Buffer.from(req.body.data ? req.body.data : '');
+            const name = req.body.name.toString().sanitizeFileNameForPath();
+            if (name.length > config.serverConfig.namesizelimit) {
+                return res.status(406).json(Authentication.tools.resErrorPayload("Name Too Big!", true));
+            }
+            const directory = req.body.path.toString().sanitizeForPath();
+            const completePath = path.join(config.databasePath, `/${userID}/`, directory);
+            if (!completePath.includes(config.databasePath)) {
+                return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true));
+            }
+            const PathType = await checkPathType(completePath);
+            if (PathType === 'unknown') {
+                return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a File/Folder!", true));
+            }
+            fs.writeFile(path.join(completePath, name), data);
+            res.status(200).json({ 'status': `successfully created The File!`, 'success': false });
+        }
+        else if (action === 'create-folder') {
+            // Sanitization
+            if (!req.body.path) {
+                return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true));
+            }
+            if (!req.body.name) {
+                return res.status(406).json(Authentication.tools.resErrorPayload("a Name must be Provided", true));
+            }
+            const name = req.body.name.toString().sanitizeFolderNameForPath();
+            if (name.length > config.serverConfig.namesizelimit) {
+                return res.status(406).json(Authentication.tools.resErrorPayload("Name Too Big!", true));
+            }
+            const directory = req.body.path.toString().sanitizeForPath();
+            const completePath = path.join(config.databasePath, `/${userID}/`, directory);
+            if (!completePath.includes(config.databasePath)) {
+                return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true));
+            }
+            const PathType = await checkPathType(completePath);
+            if (PathType === 'unknown') {
+                return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a File/Folder!", true));
+            }
+            fs.mkdir(path.join(completePath, name));
+            res.status(200).json({ 'status': `successfully created The File!`, 'success': false });
         }
     }
     catch (error) {
