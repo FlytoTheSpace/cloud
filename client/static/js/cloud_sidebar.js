@@ -2,22 +2,22 @@ const sideBarButtons = [
     {
         name: "Home",
         redirect: "/cloud",
-        icon: `${theme.icon}/home.svg`
+        icon: `${theme.colorICO? 'color': theme.icon}/home.svg`
     },
     {
         name: "Drive",
         redirect: "/cloud/u/",
-        icon: `${theme.icon}/cloud.svg`
+        icon: `${theme.colorICO? 'color': theme.icon}/cloud.svg`
     },
     {
         name: "Shared",
         redirect: "/cloud/shared",
-        icon: `${theme.icon}/folder_shared.svg`
+        icon: `${theme.colorICO? 'color': theme.icon}/folder_shared.svg`
     },
     {
         name: "Upload",
         redirect: "/cloud/upload",
-        icon: `${theme.icon}/upload.svg`
+        icon: `${theme.colorICO? 'color': theme.icon}/upload.svg`
     }
 ]
 

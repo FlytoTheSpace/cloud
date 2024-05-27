@@ -6,21 +6,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Drive</title>
     <script src="/templates/js/default.js" defer></script>
-    <link rel="stylesheet" href="/templates/css/theme/dark.css" id="themeStyleSheet">
     <link rel="stylesheet" href="/css/cloud.css">
 
     <script>
-        const themeStyleSheet = document.getElementById('themeStyleSheet')
+        function getAllCookies(){
+            const Cookies = document.cookie.replace(/[ ]+/g, '').split(';').map(keyVal=>{
+                const [key, val] = keyVal.split('=')
+                const obj = {}
+                obj[key] = val
+                return obj
+            })
+            return Cookies
+        }
+        function getCookie(name){
+            const Cookies = document.cookie.replace(/[ ]+/g, '').split(';')
+            for (const cookie of Cookies){
+                const [key, val] = cookie.split('=')
+                if(key === name){
+                    return val
+                }
+            }
+            return null
+        }
         const theme = {
             main: "dark",
-            icon: "color"
+            colorICO: true,
+            icon: "light"
         }
-        themeStyleSheet.href = `/templates/css/theme/${theme.main}.css`
+        const cookieTheme = getCookie('theme')
+        if(cookieTheme){
+            theme.main = cookieTheme
+            theme.icon = (cookieTheme === 'light')?'dark':'light'
+        } else {
+            document.cookie = `theme=${theme.main}`
+        }
+
+
+        const themeElement = document.createElement('link');
+        themeElement.rel = 'stylesheet';
+        themeElement.href = `/templates/css/theme/${theme.main}.css`;
+        document.getElementsByTagName('head')[0].insertAdjacentElement('beforeend', themeElement)
+
+        window.addEventListener('DOMContentLoaded', ()=>{
+            (Array.from(document.querySelectorAll('img[src]')))
+                .filter(img=>img.src.includes(theme.main) && !(img.dataset.const))
+                .map(img=>{
+                    img.src = img.src.replace(theme.main, theme.icon)
+                })
+        })
     </script>
     <script src="/js/cloud_sidebar.js" defer></script>
     <script src="/js/cloud.js" defer></script>
 
-    <style>
+    <!-- MAIN --> <style>
         #mainContainer {
             display: flex;
             flex-direction: column;
@@ -110,13 +148,14 @@
         #directoryInputBar{
             width: 100%;
             border-radius: 20px;
-            padding: 5px;
+            padding: 5px 10px;
             color: var(--text);
             background: transparent;
+            border: 2px var(--text) solid;
         }
     </style>
 
-    <style>
+    <!-- PREVIEW --> <style>
         #previewWindow {
             width: 100%;
             height: 100%;
@@ -152,8 +191,7 @@
             height: 100%;
         }
     </style>
-
-    <style>
+    <!-- UPLOAD --> <style>
         #uploadWindowBackground {
             width: 100%;
             height: 100%;
@@ -215,6 +253,17 @@
             }
         }
     </style>
+    
+    <script>
+        const actionbuttons = [
+            { name: 'open', ICO: 'file_open.svg' },
+            { name: 'download', ICO: 'download.svg'},
+            { name: 'copy', ICO: 'copy.svg'},
+            { name: 'cut', ICO: 'cut.svg'},
+            { name: 'paste', ICO: 'paste.svg'},
+            { name: 'delete', ICO: 'delete.svg'}
+        ]
+    </script>
 </head>
 
 <body>
@@ -251,14 +300,16 @@
             <!-- Action bar -->
             <div id="mainSectionTopBar">
                 <div id="optionsbar">
-                    <button class="t-1 c-blue withIcon" id="uploadWindowOpenBtn"><img src="/assets/images/icons/light/upload.svg" alt="">Upload</button>
-                    <button class="circle c-transparent withIcon actionBtn" id="open"><img src="/assets/images/icons/light/file_open.svg" alt=""></button>
-                    <button class="circle c-transparent withIcon actionBtn" id="download"><img src="/assets/images/icons/light/download.svg" alt=""></button>
-                    <button class="circle c-transparent withIcon actionBtn" id="copy"><img src="/assets/images/icons/light/copy.svg" alt=""></button>
-                    <button class="circle c-transparent withIcon actionBtn" id="cut"><img src="/assets/images/icons/light/cut.svg" alt=""></button>
-                    <button class="circle c-transparent withIcon actionBtn" id="paste"><img src="/assets/images/icons/light/paste.svg" alt=""></button>
-                    <button class="circle c-transparent withIcon actionBtn" id="delete"><img src="/assets/images/icons/light/delete.svg" alt=""></button>
+                    <button class="t-1 c-blue withIcon" id="uploadWindowOpenBtn"><img src="/assets/images/icons/light/upload.svg" alt="" data-const="true">Upload</button>
                 </div>
+                <script>
+                    const optionsbar = document.getElementById("optionsbar");
+                    for (let actionbtn of actionbuttons){
+                        optionsbar.insertAdjacentHTML('beforeend',
+                            `<button class="circle c-transparent withIcon actionBtn" id="${actionbtn.name}"><img src="/assets/images/icons/${theme.icon}/${actionbtn.ICO}" alt=""></button>`
+                        )
+                    }
+                </script>
                 <div id="dirBar">
                     <button class="circle c-transparent withIcon actionBtn" id="back"><img src="/assets/images/icons/light/back.svg" alt=""></button>
                     <input type="text" id="directoryInputBar" value="/" data-path="/">

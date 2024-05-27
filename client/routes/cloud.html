@@ -6,12 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contact</title>
     <script src="/templates/js/default.js" defer></script>
-    <link rel="stylesheet" href="/templates/css/theme/dark.css" id="themeStyleSheet">
+    <link rel="stylesheet" id="themeStyleSheet">
     <script>
         const themeStyleSheet = document.getElementById('themeStyleSheet')
         const theme = {
             main: "dark",
-            icon: "color"
+            colorICO: true,
+            icon: "light"
         }
         document.cookie = 
         themeStyleSheet.href = `/templates/css/theme/${theme.main}.css`
