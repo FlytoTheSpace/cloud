@@ -30,7 +30,7 @@ function isEqual(baseValue, comparisonValues) {
 }
 
 function getUserID() {
-    if(!GUI){ return null}
+    if (!GUI) { return null }
     let userId;
     if (structuredClone(location.href).endsWith('u') || structuredClone(location.href).endsWith('u/')) {
         userId = 'u'
@@ -46,13 +46,13 @@ const UI = {
     loadFiles: async function (inputPath, loadSelected = false) {
         const filesSection = $('#filesection', false)
         filesSection.innerHTML = ''
-
+        
         const path = inputPath === '' ? '/' : (inputPath.sanitizePath().endsWith('/') ? inputPath.sanitizePath() : inputPath.sanitizePath() + '/')
-
-
+        
+        
         const options = {
             method: 'GET',
-            headers: (TOKEN)? {
+            headers: (TOKEN) ? {
                 Authorization: TOKEN,
                 path: path
             } : {
@@ -63,16 +63,17 @@ const UI = {
         if (!request.ok) { return UI.showError("Unable to Load Files") }
         $('#directoryInputBar').value = path
         $('#directoryInputBar').dataset.path = path
-
+        
         const ReponseObject = await request.json()
-
+        
         if (ReponseObject.length < 1) {
             filesSection.innerHTML = 'No Files Found'
             return null;
         }
-
+        
+        filesSection.innerHTML = ''
         ReponseObject.forEach(fileObject => {
-
+            
             const filename = fileObject.name;
             const filepath = fileObject.path;
             const type = fileObject.type;
@@ -137,7 +138,7 @@ const UI = {
 
             const options = {
                 method: 'POST',
-                headers: (TOKEN)? {
+                headers: (TOKEN) ? {
                     Authorization: TOKEN,
                     "Content-Type": 'application/json',
                     action: 'open'
@@ -183,7 +184,7 @@ const UI = {
 
             const options = {
                 method: 'POST',
-                headers: (TOKEN)? {
+                headers: (TOKEN) ? {
                     Authorization: TOKEN,
                     "Content-Type": 'application/json',
                     action: 'open'
@@ -269,7 +270,7 @@ const Action = {
     get: async function (path) {
         const options = {
             method: 'POST',
-            headers: (TOKEN)? {
+            headers: (TOKEN) ? {
                 Authorization: TOKEN,
                 "Content-Type": 'application/json',
                 action: 'open'
@@ -347,7 +348,7 @@ const Action = {
             cutlist.forEach(async ({ name, path }) => {
                 const options = {
                     method: 'POST',
-                    headers: (TOKEN)? {
+                    headers: (TOKEN) ? {
                         Authorization: TOKEN,
                         "Content-Type": 'application/json',
                         action: 'move'
@@ -369,7 +370,7 @@ const Action = {
             clipBoard.forEach(async filePath => {
                 const options = {
                     method: 'POST',
-                    headers: (TOKEN)? {
+                    headers: (TOKEN) ? {
                         Authorization: TOKEN,
                         "Content-Type": 'application/json',
                         action: 'copy'
@@ -398,7 +399,7 @@ const Action = {
         for (let i = 0; i < paths.length; i++) {
             const options = {
                 method: 'POST',
-                headers: (TOKEN)? {
+                headers: (TOKEN) ? {
                     Authorization: TOKEN,
                     "Content-Type": 'application/json',
                     action: 'delete'
@@ -425,7 +426,7 @@ const Action = {
     createFile: async function (path, name, data) {
         const options = {
             method: "POST",
-            headers: (TOKEN)? {
+            headers: (TOKEN) ? {
                 Authorization: TOKEN,
                 "Content-Type": 'application/json',
                 action: 'create-file'
@@ -446,7 +447,7 @@ const Action = {
     createFolder: async function (path, name) {
         const options = {
             method: "POST",
-            headers: (TOKEN)? {
+            headers: (TOKEN) ? {
                 Authorization: TOKEN,
                 "Content-Type": 'application/json',
                 action: 'create-folder'
@@ -485,7 +486,7 @@ if (GUI) {
             formData.append('file', file);
         }
 
-        const headers = (TOKEN)? {
+        const headers = (TOKEN) ? {
             Authorization: TOKEN,
             'path': $('#directoryInputBar').dataset.path,
         } : {
@@ -570,6 +571,57 @@ if (GUI) {
     directoryInputBar.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
             UI.loadFiles(event.target.value)
+        }
+    })
+
+    $('#createFile').addEventListener('click', ()=>{
+        const filesection = $('#filesection')
+        filesection.insertAdjacentHTML('beforeend', `
+            
+            <div class="file" data-path="" data-type="" data-name="" data-selected='false' data-timeout="false">
+                <div class="icon">
+                    <img src="${UI.getIcon('file','')}" alt="">
+                </div>
+                <div class="name pendingFileCreation" contentEditable='true'>New File</div>
+            </div>`
+
+            )
+        const pendingFileCreation = $('.pendingFileCreation')
+        pendingFileCreation.focus()
+        pendingFileCreation.onkeydown = function({key}){
+            if(key === 'Enter'){
+                const path = $('#directoryInputBar').dataset.path
+
+                Action.createFile(path, (pendingFileCreation.textContent).sanitizePath(), '')
+                
+                UI.loadFiles($('#directoryInputBar').dataset.path)
+                console.log("Reloaded")
+            }
+        }
+    })
+    $('#createFolder').addEventListener('click', ()=>{
+        const filesection = $('#filesection')
+        filesection.insertAdjacentHTML('beforeend', `
+            
+            <div class="file" data-path="" data-type="" data-name="" data-selected='false' data-timeout="false">
+                <div class="icon">
+                    <img src="${UI.getIcon('directory')}" alt="">
+                </div>
+                <div class="name pendingFolderCreation" contentEditable='true'>New Folder</div>
+            </div>`
+
+            )
+        const pendingFolderCreation = $('.pendingFolderCreation')
+        pendingFolderCreation.focus()
+        pendingFolderCreation.onkeydown = function({key}){
+            if(key === 'Enter'){
+                const path = $('#directoryInputBar').dataset.path
+
+                Action.createFolder(path, (pendingFolderCreation.textContent).sanitizePath())
+                
+                UI.loadFiles($('#directoryInputBar').dataset.path)
+                console.log("Reloaded")
+            }
         }
     })
 }

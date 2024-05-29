@@ -349,8 +349,11 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
                 return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true));
             }
             const PathType = await checkPathType(completePath);
-            if (PathType === 'unknown') {
-                return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a File/Folder!", true));
+            if (PathType !== 'directory') {
+                return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a Folder!", true));
+            }
+            if (await pathExists(path.join(completePath, name))) {
+                return res.status(409).json(Authentication.tools.resErrorPayload("File Already Exists!", true));
             }
             fs.writeFile(path.join(completePath, name), data);
             res.status(200).json({ 'status': `successfully created The File!`, 'success': false });
@@ -375,6 +378,9 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
             const PathType = await checkPathType(completePath);
             if (PathType === 'unknown') {
                 return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a File/Folder!", true));
+            }
+            if (await pathExists(path.join(completePath, name))) {
+                return res.status(409).json(Authentication.tools.resErrorPayload("Folder Already Exists!", true));
             }
             fs.mkdir(path.join(completePath, name));
             res.status(200).json({ 'status': `successfully created The File!`, 'success': false });
