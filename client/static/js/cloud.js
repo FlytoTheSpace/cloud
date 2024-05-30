@@ -549,7 +549,7 @@ if (GUI) {
             if (btn.id === 'paste') { Action.paste() }
             if (btn.id === 'download') {
                 const types = fileElements.map(({ dataset }) => dataset.type)
-                download(paths, types)
+                UI.download(paths, types)
             }
             if (btn.id === 'delete') { Action.deletes(...paths) }
             if (btn.id === 'back') { UI.back() }
