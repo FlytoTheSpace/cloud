@@ -1,0 +1,23 @@
+version: '3'
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongodatabase
+    environment:
+      mongoDBURI: mongodb://mongodatabase:27017/mydatabase
+    volumes:
+      - ./database:/app/database
+
+  mongodatabase:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d:ro
+
+volumes:
+  mongo-data:
