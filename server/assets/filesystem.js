@@ -18,7 +18,7 @@ export async function pathExists(path) {
     }
 }
 export async function getFiles(userID, directory) {
-    const files = (await fs.readdir(path.join(config.databasePath, `${userID}/`, directory)));
+    const files = (await fs.readdir(path.join(config.databasePath, `${userID}/`, directory.sanitizePath())));
     const filesObject = [];
     for (let i = 0; i < files.length; i++) {
         const filePath = path.join(directory, files[i]).replace(/\\/g, '/');

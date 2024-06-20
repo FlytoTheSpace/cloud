@@ -502,7 +502,7 @@ if (GUI) {
 
         if (!UploadRequest.ok) {
             uploadWindowBackground.display = 'none';
-            return UI.showError("Unable to Upload Your Files!")
+            return UI.showError((await UploadRequest.json()).status)
         }
         const UploadReponse = await UploadRequest.json();
         $('#uploadCancel').click()

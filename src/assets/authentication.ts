@@ -100,8 +100,10 @@ export const Authentication = {
             if (!decodedSessionToken) { return false }
 
             if ((Date.now() - decodedSessionToken.creation) / 1000 > sessionTokenExpiration * 60) { return false }
-            if (!req.ip) { return false }
-            if (req.ip !== decodedSessionToken.ip) { return false }
+            const ipAddress: string | undefined = req.ip
+            
+            if (!ipAddress) { return false }
+            if (ipAddress !== decodedSessionToken.ip) { return false }
 
             // Session Payload Token Verification
             const decodedSessionPayloadToken: accountInterface | null = Accounts.token.validate(token)

@@ -34,6 +34,16 @@ declare global {
         sanitizeFolderNameForPath(): string
     }
 }
+/**
+ * A Function for Generating a Status Response to the Client
+ * @param status 
+ * @param success 
+ * @returns {'status': string, 'success': boolean}
+ * @example res.json(resStatusPayload("Account doesn't exist", false))
+ */
+function resStatusPayload (status: string, success: boolean = false): { status: string; success: boolean; }{
+    return {'status': status, 'success': success}
+}
 
 String.prototype.sanitizePath = function (fromROOT?: boolean) {
     const sanitizedString: string = (fromROOT ? this.replace(RootdirRegex, '') : this.replace(dirRegex, '')).replace(/\.\.+/g, '').replace(/(\/\/+)|(\\+)/g, '/')
@@ -68,22 +78,22 @@ router.post('/submit/login', async (req, res) => {
 
     // Checking if all the fields are provided
     try {
-        if (!req.body.usernameOrEmail && !req.body.password) return res.status(406).json({ 'status': 'please provide all the fields!', 'success': false });
-        if (!req.body.usernameOrEmail) return res.status(406).json({ 'status': 'please provide a username or email!', 'success': false });
-        if (!req.body.password) return res.status(406).json({ 'status': 'please provide a password!', 'success': false });
+        if (!req.body.usernameOrEmail && !req.body.password) return res.status(406).json(resStatusPayload('please provide all the fields!', false));
+        if (!req.body.usernameOrEmail) return res.status(406).json(resStatusPayload('please provide a username or email!', false));
+        if (!req.body.password) return res.status(406).json(resStatusPayload('please provide a password!', false));
     } catch (error) {
         if (config.serverConfig.devMode) { console.log(logPrefix("API"), error); };
-        return res.status(406).json({ 'status': 'please provide all the fields!', 'success': false });
+        return res.status(406).json(resStatusPayload('please provide all the fields!', false));
     }
 
     if (typeof (req.body.usernameOrEmail) === 'object' || typeof (req.body.password) === 'object') {
         console.log(`[Security] a NoSQL Injection Attempt detected at IP: ${req.ip}`)
-        return res.status(401).json({ 'status': 'access denied!', 'success': false });
+        return res.status(401).json(resStatusPayload('access denied!', false));
     };
 
     const usernameOrEmail: string = req.body.usernameOrEmail.toString().toLowerCase().replace(/[^a-z | 0-9 | \. | \@ | \+ ]/g, ''); // Sanitizing it
 
-    let matchedAccount;
+    let matchedAccount: accountInterface | undefined;
 
     // Finding Account based on it's Username or Email
     if (req.body.usernameOrEmail.includes('@')) {
@@ -95,21 +105,21 @@ router.post('/submit/login', async (req, res) => {
         // If it's a Username:
         const username: string = usernameOrEmail.replace(/ \@ | \+ /g, '');
 
-        if (username.length < 4) return res.status(406).json({ 'status': 'invalid username!', 'success': false });
+        if (username.length < 4) return res.status(406).json(resStatusPayload('invalid username!'));
 
         matchedAccount = await Accounts.findAccountOne.username(username); // The Matched Account
     }
-    if (!matchedAccount) return res.status(406).json({ 'status': "account doesn't exist!", 'success': false });
+    if (!matchedAccount) return res.status(406).json(resStatusPayload("account doesn't exist!"));
 
 
     // Checking if the Password is Incorrect
     try {
         const password: string = req.body.password.toString()
-        const isPasswordMatch: boolean = await bcrypt.compare(password, (matchedAccount.password as string))
+        const isPasswordMatch: boolean = await bcrypt.compare(password, matchedAccount.password)
 
-        if (!isPasswordMatch) { return res.status(406).json({ 'status': 'incorrect password!', 'success': false }) };
+        if (!isPasswordMatch) { return res.status(406).json(resStatusPayload('incorrect password!')) };
     } catch {
-        return res.status(500).json({ 'status': 'internal Server Error, please try again later...', 'success': false })
+        return res.status(500).json(resStatusPayload('internal Server Error, please try again later...'))
     }
 
     // on Success:
@@ -125,39 +135,39 @@ router.post('/submit/login', async (req, res) => {
         httpOnly: true,
         path: '/',
         sameSite: 'strict'
-    }).status(200).json({ 'status': 'successful login', 'success': true })
+    }).status(200).json(resStatusPayload('successful login', true))
 
 })
 // Register Submit API
 router.post('/submit/register', async (req, res) => {
 
     // Checking if any Field is Missing
-    if (!req.body.username && !req.body.email && !req.body.password) return res.status(406).json({ 'status': 'please provide all the fields!', 'success': false });
-    if (!req.body.username) return res.status(406).json({ 'status': 'username is required!', 'success': false });
-    if (!req.body.email) return res.status(406).json({ 'status': 'email is required!', 'success': false });
-    if (!req.body.password) return res.status(406).json({ 'status': 'username is required!', 'success': false });
+    if (!req.body.username && !req.body.email && !req.body.password) return res.status(406).json(resStatusPayload('please provide all the fields!'));
+    if (!req.body.username) return res.status(406).json(resStatusPayload('username is required!'));
+    if (!req.body.email) return res.status(406).json(resStatusPayload('email is required!'));
+    if (!req.body.password) return res.status(406).json(resStatusPayload('username is required!'));
 
     // Sanitization
 
     // Making Sure Username is Available and follows all the rules
     const username: string = req.body.username.toString().toLowerCase().replace(/[^a-z | 0-9 | \.]/g, '');
     // add your own username conditions here
-    if (!(/[a-z]/.test(username))) { return res.status(406).json({ 'status': 'username must contain atleast one character (a-z)', 'success': false }); }
-    if (!(await Accounts.isAvailable.username(username))) { return res.status(406).json({ 'status': 'username is occupied!', 'success': false }); }
+    if (!(/[a-z]/.test(username))) { return res.status(406).json(resStatusPayload('username must contain atleast one character (a-z)')); }
+    if (!(await Accounts.isAvailable.username(username))) { return res.status(406).json(resStatusPayload('username is occupied!')); }
 
     // Making sure that the Account Doesn't exist
     const email: string = req.body.email.toString().toLowerCase().replace(/[^a-z | 0-9 | \. | \@ ]/g, '');
-    if (!(await Accounts.isAvailable.email(email))) { return res.status(406).json({ 'status': 'account already exists!', 'success': false }); }
+    if (!(await Accounts.isAvailable.email(email))) { return res.status(406).json(resStatusPayload('account already exists!')); }
 
     const password: string = req.body.password.toString();
 
     // Hashing the password
-    let hash;
+    let hash: string;
     try {
         const salt: string = await bcrypt.genSalt(14)
         hash = await bcrypt.hash(password, salt)
     } catch (error) {
-        return res.status(500).json({ 'status': 'internal server error!', 'success': false });
+        return res.status(500).json(resStatusPayload('internal server error!'));
     }
 
     const hashedPassword: string = structuredClone(hash)
@@ -174,7 +184,7 @@ router.post('/submit/register', async (req, res) => {
     try {
         await Accounts.register(user)
     } catch (error) {
-        return res.status(500).json({ 'status': 'internal server error!', 'success': false });
+        return res.status(500).json(resStatusPayload('internal server error!'));
     }
 
     // On Success:
@@ -188,7 +198,7 @@ router.post('/submit/register', async (req, res) => {
         httpOnly: true,
         path: '/',
         sameSite: 'strict'
-    }).status(201).json({ 'status': 'successfully registered your Account1', 'success': true })
+    }).status(201).json(resStatusPayload('Successfully Registered your Account', true))
 })
 router.get('/get/account/info', async (req, res) => {
     try {
@@ -217,11 +227,11 @@ router.get('/cloud/files/:userid', Authentication.tokenAPI, async (req, res) => 
         const filesObject: FileObject[] = await getFiles(userID, directory)
         res.status(200).json(filesObject)
     } catch (error) {
-        return res.status(400).json(Authentication.tools.resErrorPayload("Bad Request", true))
+        return res.status(500).json(resStatusPayload("something went wrong!"))
     }
 })
 router.post('/cloud/files/upload/:userid', Authentication.tokenAPI, missingPathandUserID, cloudUpload.any(), (req, res) => {
-    res.status(201).json({ 'status': 'successfully uploaded your files!', 'success': true })
+    res.status(201).json(resStatusPayload('successfully uploaded your files!', true))
 })
 router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, res) => {
     // Sanitization
@@ -231,88 +241,88 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
         userID = (req.params.userid === 'u') ? (jwt.verify(req.cookies.token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface).userID : parseInt(req.params.userid);
     } catch (error) { return res.status(400).send({ 'status': 'invalid user ID', 'success': false }) }
 
-    if (!req.headers.action) { return res.status(406).json(Authentication.tools.resErrorPayload("An Action must be Provided", true)) }
+    if (!req.headers.action) { return res.status(406).json(resStatusPayload('An Action must be Provided')) }
 
     const action: string = req.headers.action.toString()
 
-    if (action !== "open" && action !== "copy" && action !== "move" && action !== "delete" && action !== "create-file" && action !== "create-folder") { return res.status(405).json(Authentication.tools.resErrorPayload("Invalid Operation!", true)) }
+    if (action !== 'open' && action !== 'copy' && action !== 'move' && action !== 'delete' && action !== 'create-file' && action !== 'create-folder') { return res.status(405).json(resStatusPayload('Invalid Operation!')) }
 
     try {
         if (action === 'open') {
             // Sanitization
-            if (!req.body.path) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
+            if (!req.body.path) { return res.status(406).json(resStatusPayload("Path must be Provided")) }
 
             const directory: string = req.body.path.toString().sanitizePath()
             const completePath = path.join(config.databasePath, `/${userID}/`, directory)
-            if (!completePath.includes(config.databasePath)) { return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true)) }
-            if (await checkPathType(completePath) !== 'file') { return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a File!", true)) }
+            if (!completePath.includes(config.databasePath)) { return res.status(405).json(resStatusPayload("Not Allowed!")) }
+            if (await checkPathType(completePath) !== 'file') { return res.status(406).json(resStatusPayload("Path must lead to a File!")) }
 
             res.status(200).sendFile(completePath)
         } else if (action === 'copy') {
             // Sanitization
-            if (!req.body.from) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
-            if (!req.body.destination) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
+            if (!req.body.from) { return res.status(406).json(resStatusPayload("Path must be Provided")) }
+            if (!req.body.destination) { return res.status(406).json(resStatusPayload("Path must be Provided")) }
 
             const fromPath: string = req.body.from.toString().sanitizePath()
             const fromCompletePath: string = path.join(config.databasePath, `/${userID}/`, fromPath).sanitizePath(true)
             const destinationPath: string = req.body.destination.toString().sanitizePath()
             const destinationCompletePath: string = path.join(config.databasePath, `/${userID}/`, destinationPath).sanitizePath(true)
 
-            if (!fromCompletePath.includes(config.databasePath.sanitizePath(true)) || !destinationCompletePath.includes(config.databasePath.sanitizePath(true))) { return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true)) }
+            if (!fromCompletePath.includes(config.databasePath.sanitizePath(true)) || !destinationCompletePath.includes(config.databasePath.sanitizePath(true))) { return res.status(405).json(resStatusPayload("Not Allowed!")) }
 
             const fromPathType: FileSystemTypes = await checkPathType(fromCompletePath)
             const destinationPathType: FileSystemTypes = await checkPathType(destinationCompletePath)
 
             if (fromPathType !== 'file' && fromPathType !== 'directory') {
-                return res.status(406).json(Authentication.tools.resErrorPayload("Paths is must be lead to a File/Folder!", true))
+                return res.status(406).json(resStatusPayload("Paths is must be lead to a File/Folder!"))
             }
             // Copying It
             try {
                 execSync(`cp -r "${fromCompletePath}" "${destinationCompletePath}"`)
                 res.status(200).json({ 'status': `successfully copied File/Folder!`, 'success': false })
             } catch {
-                res.status(400).json(Authentication.tools.resErrorPayload("Unable to Copy Files!", true))
+                res.status(400).json(resStatusPayload("Unable to Copy Files!"))
             }
 
         } else if (action === 'move') {
             // Sanitization
-            if (!req.body.from) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
-            if (!req.body.destination) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
+            if (!req.body.from) { return res.status(406).json(resStatusPayload("Path must be Provided")) }
+            if (!req.body.destination) { return res.status(406).json(resStatusPayload("Path must be Provided")) }
 
             const fromPath: string = req.body.from.toString().sanitizePath()
             const fromCompletePath: string = path.join(config.databasePath, `/${userID}/`, fromPath).sanitizePath(true)
             const destinationPath: string = req.body.destination.toString().sanitizePath()
             const destinationCompletePath: string = path.join(config.databasePath, `/${userID}/`, destinationPath).sanitizePath(true)
 
-            if (!fromCompletePath.includes(config.databasePath.sanitizePath(true)) || !destinationCompletePath.includes(config.databasePath.sanitizePath(true))) { return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true)) }
+            if (!fromCompletePath.includes(config.databasePath.sanitizePath(true)) || !destinationCompletePath.includes(config.databasePath.sanitizePath(true))) { return res.status(405).json(resStatusPayload("Not Allowed!")) }
 
             const fromPathType: FileSystemTypes = await checkPathType(fromCompletePath)
             const destinationPathType: FileSystemTypes = await checkPathType(destinationCompletePath)
 
             if (fromPathType !== 'file' && fromPathType !== 'directory') {
-                return res.status(406).json(Authentication.tools.resErrorPayload("Paths is must be lead to a File/Folder!", true))
+                return res.status(406).json(resStatusPayload("Paths is must be lead to a File/Folder!"))
             }
             // Moving It
             try {
                 await fs.rename(fromCompletePath, destinationCompletePath)
 
-                res.status(200).json({ 'status': `successfully Moved Your File!`, 'success': false })
+                res.status(200).json({ 'status': 'successfully Moved Your File(s)!', 'success': false })
             } catch {
-                return res.status(406).json(Authentication.tools.resErrorPayload("Unable to Move Your Files!", true))
+                return res.status(406).json(resStatusPayload("Unable to Move Your Files!"))
             }
 
         } else if (action === 'delete') {
             // Sanitization
-            if (!req.body.path) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
+            if (!req.body.path) { return res.status(406).json(resStatusPayload("Path must be Provided")) }
 
             const directory: string = req.body.path.toString().sanitizePath()
             const completePath: string = path.join(config.databasePath, `/${userID}/`, directory)
 
-            if (!completePath.includes(config.databasePath)) { return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true)) }
+            if (!completePath.includes(config.databasePath)) { return res.status(405).json(resStatusPayload("Not Allowed!")) }
 
             const PathType: FileSystemTypes = await checkPathType(completePath)
 
-            if (PathType === 'unknown') { return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a File/Folder!", true)) }
+            if (PathType === 'unknown') { return res.status(406).json(resStatusPayload("Path is must be lead to a File/Folder!")) }
 
             if (PathType === 'file') {
                 await fs.unlink(completePath)
@@ -323,37 +333,37 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
             res.status(200).json({ 'status': `successfully deleted The ${PathType}!`, 'success': false })
         } else if (action === 'create-file') {
             // Sanitization
-            if (!req.body.path) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
-            if (!req.body.name) { return res.status(406).json(Authentication.tools.resErrorPayload("a Name must be Provided", true)) }
+            if (!req.body.path) { return res.status(406).json(resStatusPayload("Path must be Provided")) }
+            if (!req.body.name) { return res.status(406).json(resStatusPayload("a Name must be Provided")) }
             const data = Buffer.from(req.body.data ? req.body.data : '')
 
             const name: string = (req.body.name.toString() as string).sanitizeFileNameForPath()
-            if (name.length > config.serverConfig.namesizelimit) { return res.status(406).json(Authentication.tools.resErrorPayload("Name Too Big!", true)) }
+            if (name.length > config.serverConfig.namesizelimit) { return res.status(406).json(resStatusPayload("Name Too Big!")) }
 
             const directory: string = req.body.path.toString().sanitizePath()
             const completePath: string = path.join(config.databasePath, `/${userID}/`, directory)
-            if (!completePath.includes(config.databasePath)) { return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true)) }
+            if (!completePath.includes(config.databasePath)) { return res.status(405).json(resStatusPayload("Not Allowed!")) }
             const PathType: FileSystemTypes = await checkPathType(completePath)
-            if (PathType !== 'directory') { return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a Folder!", true)) }
-            if (await pathExists(path.join(completePath, name))){ return res.status(409).json(Authentication.tools.resErrorPayload("File Already Exists!", true))}
+            if (PathType !== 'directory') { return res.status(406).json(resStatusPayload("Path is must be lead to a Folder!")) }
+            if (await pathExists(path.join(completePath, name))){ return res.status(409).json(resStatusPayload("File Already Exists!"))}
 
             fs.writeFile(path.join(completePath, name), data)
 
             res.status(200).json({ 'status': `successfully created The File!`, 'success': false })
         } else if (action === 'create-folder') {
             // Sanitization
-            if (!req.body.path) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
-            if (!req.body.name) { return res.status(406).json(Authentication.tools.resErrorPayload("a Name must be Provided", true)) }
+            if (!req.body.path) { return res.status(406).json(resStatusPayload("Path must be Provided")) }
+            if (!req.body.name) { return res.status(406).json(resStatusPayload("a Name must be Provided")) }
 
             const name: string = (req.body.name.toString() as string).sanitizeFolderNameForPath()
-            if (name.length > config.serverConfig.namesizelimit) { return res.status(406).json(Authentication.tools.resErrorPayload("Name Too Big!", true)) }
+            if (name.length > config.serverConfig.namesizelimit) { return res.status(406).json(resStatusPayload("Name Too Big!")) }
 
             const directory: string = req.body.path.toString().sanitizePath()
             const completePath: string = path.join(config.databasePath, `/${userID}/`, directory)
-            if (!completePath.includes(config.databasePath)) { return res.status(405).json(Authentication.tools.resErrorPayload("Not Allowed!", true)) }
+            if (!completePath.includes(config.databasePath)) { return res.status(405).json(resStatusPayload("Not Allowed!")) }
             const PathType: FileSystemTypes = await checkPathType(completePath)
-            if (PathType === 'unknown') { return res.status(406).json(Authentication.tools.resErrorPayload("Path is must be lead to a File/Folder!", true)) }
-            if (await pathExists(path.join(completePath, name))){ return res.status(409).json(Authentication.tools.resErrorPayload("Folder Already Exists!", true))}
+            if (PathType === 'unknown') { return res.status(406).json(resStatusPayload("Path is must be lead to a File/Folder!")) }
+            if (await pathExists(path.join(completePath, name))){ return res.status(409).json(resStatusPayload("Folder Already Exists!"))}
 
             fs.mkdir(path.join(completePath, name))
 
@@ -361,7 +371,7 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
         }
     } catch (error) {
         console.log(error)
-        return res.status(400).json(Authentication.tools.resErrorPayload("something went wrong!", true))
+        return res.status(400).json(resStatusPayload("something went wrong!"))
     }
 })
 router.get('/u/info/userid', Authentication.tokenAPI, (req, res) => {
@@ -372,20 +382,24 @@ router.get('/u/info/userid', Authentication.tokenAPI, (req, res) => {
         res.status(200).json({ 'userID': userID })
     } catch (error) {
         console.log(error)
-        res.status(500).send(Authentication.tools.resErrorPayload("internal server error!", true))
+        res.status(500).send(resStatusPayload('internal server error!'))
     }
 })
 
 // Custom Middlwares
 async function missingPathandUserID(req: Request, res: Response, next: NextFunction) {
+    
     if (!req.params.userid) { return res.status(400).send({ 'status': 'please provide userid', 'success': false }) }
     try {
         (req.params.userid === 'u') ? (jwt.verify(req.cookies.token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface).userID : parseInt(req.params.userid);
     } catch (error) { return res.status(400).send({ 'status': 'invalid user ID', 'success': false }) }
-
-    if (!req.headers.path) { return res.status(406).json(Authentication.tools.resErrorPayload("Path must be Provided", true)) }
-
-    if(!(await pathExists(path.join(config.databasePath, (req.headers.path.toString()).sanitizePath()))))
+    
+    if (!req.headers.path) { return res.status(406).json(resStatusPayload("Path must be Provided")) }
+    
+    if(await pathExists(path.join(config.databasePath, (req.headers.path.toString()).sanitizePath()))){
+        return res.status(406).json(resStatusPayload("File Already Exists"))
+    }
+    
     next();
 }
 // Functions

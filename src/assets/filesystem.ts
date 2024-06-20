@@ -28,7 +28,7 @@ export async function pathExists(path: string): Promise<boolean> {
     }
 }
 export async function getFiles(userID: number, directory: string): Promise<FileObject[]> {
-    const files: string[] = (await fs.readdir(path.join(config.databasePath, `${userID}/`, directory)))
+    const files: string[] = (await fs.readdir(path.join(config.databasePath, `${userID}/`, directory.sanitizePath())))
 
     const filesObject: FileObject[] = []
 

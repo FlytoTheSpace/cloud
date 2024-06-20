@@ -95,10 +95,11 @@ export const Authentication = {
             if ((Date.now() - decodedSessionToken.creation) / 1000 > sessionTokenExpiration * 60) {
                 return false;
             }
-            if (!req.ip) {
+            const ipAddress = req.ip;
+            if (!ipAddress) {
                 return false;
             }
-            if (req.ip !== decodedSessionToken.ip) {
+            if (ipAddress !== decodedSessionToken.ip) {
                 return false;
             }
             // Session Payload Token Verification
