@@ -25,11 +25,20 @@ catch (error) {
 }
 // Checking if any configuration is missing
 for (let i = 0; i < Object.keys(defaultconfigFile).length; i++) {
-    if (Object.keys(defaultconfigFile)[i] !== Object.keys(serverConfig)[i]) {
+    const val = serverConfig[Object.keys(defaultconfigFile)[i]];
+    if (val === undefined || val === null) {
         // Setting The Configuration to Default if any is Missing
         console.log(logPrefix("Config"), "Invalid configuration, Fixing It...");
-        serverConfig[Object.keys(defaultconfigFile)[i]] = Object.values(defaultconfigFile)[i];
-        await fs.writeFile(path.join(ROOT, 'config.json'), JSON.stringify(serverConfig));
+        changeConfig(Object.keys(defaultconfigFile)[i], defaultconfigFile[Object.keys(defaultconfigFile)[i]]);
+    }
+}
+async function changeConfig(key, value) {
+    serverConfig[key] = value;
+    try {
+        await fs.writeFile(path.join(ROOT, 'config.json'), JSON.stringify(serverConfig, null, 4));
+    }
+    catch (error) {
+        console.log(logPrefix("Error Config.ts"), error.message);
     }
 }
 // 
