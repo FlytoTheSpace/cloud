@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node server/",
-    "dev": "nodemon server/"
+    "dev": "nodemon server/",
+    "build": "tsc -w"
   },
   "keywords": [],
   "author": "",

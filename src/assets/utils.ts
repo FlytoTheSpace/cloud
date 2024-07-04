@@ -32,5 +32,5 @@ export const logMSG: (normalLog: any[], devLog?: any[], prefix?: string) => void
 }
 
 export const throwError: (normalError: string, devError?: string) => Error = (normalError: string, devError?: string)=>{
-    return (config.serverConfig.devMode)? new Error(normalError) : new Error(devError || normalError)
+    return (config.serverConfig.devMode)? new Error(devError || normalError): new Error(normalError)
 };

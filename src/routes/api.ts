@@ -67,7 +67,7 @@ const cloudStorage = multer.diskStorage({
         next(null, destinationPath);
     },
     filename: (req, file, next) => {
-        next(null, file.originalname)
+        next(null, file.originalname.sanitizeFileNameForPath())
     }
 })
 
@@ -388,18 +388,17 @@ router.get('/u/info/userid', Authentication.tokenAPI, (req, res) => {
 
 // Custom Middlwares
 async function missingPathandUserID(req: Request, res: Response, next: NextFunction) {
-    
+    const token: string = (req.cookies.token || req.headers.authorization).toString()
+
     if (!req.params.userid) { return res.status(400).send({ 'status': 'please provide userid', 'success': false }) }
+    let userId: number;
     try {
-        (req.params.userid === 'u') ? (jwt.verify(req.cookies.token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface).userID : parseInt(req.params.userid);
-    } catch (error) { return res.status(400).send({ 'status': 'invalid user ID', 'success': false }) }
-    
-    if (!req.headers.path) { return res.status(406).json(resStatusPayload("Path must be Provided")) }
-    
-    if(await pathExists(path.join(config.databasePath, (req.headers.path.toString()).sanitizePath()))){
-        return res.status(406).json(resStatusPayload("File Already Exists"))
+        userId = (req.params.userid === 'u') ? (Accounts.token.validate(token) as accountInterface).userID : parseInt(req.params.userid);
+    } catch (error) {
+        return res.status(400).send({ 'status': 'invalid user ID', 'success': false })
     }
     
+    if (!req.headers.path) { return res.status(406).json(resStatusPayload("Path must be Provided")) }
     next();
 }
 // Functions

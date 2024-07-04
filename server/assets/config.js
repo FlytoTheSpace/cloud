@@ -7,7 +7,8 @@ import { directoryExists } from './utils.js';
 const defaultconfigFile = {
     'devMode': false,
     'databaseDir': "$ROOT/database",
-    'namesizelimit': 255
+    'namesizelimit': 255,
+    'firstrun': false
 };
 let serverConfig;
 // Checking If  the Configuration File is Missing

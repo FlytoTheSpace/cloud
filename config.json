@@ -1,1 +1,1 @@
-{"devMode":true,"databaseDir":"$ROOT/database","namesizelimit":255}
+{"devMode":true,"databaseDir":"$ROOT/database","namesizelimit":255,"firstrun": false}

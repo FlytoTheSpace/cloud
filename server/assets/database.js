@@ -3,20 +3,26 @@ import mongoose from 'mongoose';
 import logPrefix from './log.js';
 import { logMSG, throwError } from './utils.js';
 import jwt from 'jsonwebtoken';
-try {
-    // Checking If the URI is Provided
+const timeoutSeconds = 5;
+const connect = async () => {
     if (!process.env.mongoDBURI) {
-        throw new Error(`${logPrefix('Database')} MongoDB URI not Provided, please Provide it!`);
+        throwError(`${logPrefix('Database')} MongoDB URI not Provided, please Provide it!`);
+        process.exit(1);
     }
-    // Connecting to The Server
-    await mongoose.connect(process.env.mongoDBURI);
-    console.log(logPrefix("Database"), `Connect to Loaded MongoDB`);
+    mongoose.connect(process.env.mongoDBURI);
+    return `Connected to MongoDB`;
+};
+const timeout = new Promise((_, rej) => {
+    setTimeout(() => {
+        rej(new Error("MongoDB Connection Timeout!"));
+    }, timeoutSeconds * 1000);
+});
+try {
+    console.log(logPrefix("Database"), await Promise.race([connect(), timeout]));
 }
 catch (error) {
-    if (error.message == `${logPrefix('Database')} MongoDB URI not Provided, please Provide it!`) {
-        throw error;
-    }
     throwError("Unable to Connect to MongoDB", error.message);
+    process.exit(1);
 }
 const Schema = mongoose.Schema;
 const ObjectId = Schema.ObjectId;
