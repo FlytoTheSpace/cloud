@@ -31,7 +31,7 @@ try{
     }
 } catch (error){
 
-    console.log("[Config] No Config File Found, Creating One...")
+    console.log(logPrefix("Config"), "No Config File Found, Creating One...")
     await fs.writeFile(path.join(ROOT, 'config.json'), JSON.stringify(defaultconfigFile))
     serverConfig = structuredClone(defaultconfigFile)
 }
@@ -56,7 +56,7 @@ async function changeConfig (key: string, value: string | number | boolean){
 
         await fs.writeFile(path.join(ROOT, 'config.json'), JSON.stringify(serverConfig, null, 4))
     } catch(error){
-        console.log(logPrefix("Error Config.ts"), (error as Error).message)
+        console.log(logPrefix("Error"), (error as Error).message)
     }
 }
 
@@ -68,4 +68,4 @@ const databasePath: string = (serverConfig.databaseDir.startsWith("$ROOT"))? pat
 if (!(await directoryExists(databasePath))){
     throw new Error("Database Directory doesn't exists... , please create it")
 }
-export default {serverConfig, databasePath};
+export default {serverConfig, databasePath, changeConfig};

@@ -34,7 +34,6 @@ app.use(express.json())
 
 app.use('/', pagesRouter)
 app.use('/', APIRouter)
-
 app.listen(PORT, ()=>{
     console.log(logPrefix('Server'), `Server Started on http://${ipv4}:${PORT}`)
 })

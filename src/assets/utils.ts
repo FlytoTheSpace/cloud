@@ -27,8 +27,8 @@ export function isErrnoException(error: any): error is NodeJS.ErrnoException {
     return (error instanceof Error) && ('code' in error);
 }
 
-export const logMSG: (normalLog: any[], devLog?: any[], prefix?: string) => void = (normalLog: any[], devLog?: any[], prefix?: string)=>{
-    return (config.serverConfig.devMode)? console.log(logPrefix(prefix || "Log"),...normalLog) : console.log(logPrefix(prefix || "Log"), ...(devLog || normalLog))
+export const logMSG = (prefix: string, ...msg: string[])=>{
+    console.log(logPrefix(prefix), ...msg)
 }
 
 export const throwError: (normalError: string, devError?: string) => Error = (normalError: string, devError?: string)=>{

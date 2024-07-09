@@ -1,5 +1,15 @@
+const ErrorLinks = {
+    "Invalid Token": [["/login", "Login"], ["/register", "Register"]]
+};
 const UI = {
     errorMSG: (msg, title) => {
+        let HTMLinput = '';
+        if (ErrorLinks[msg]) {
+            for (let i = 0; i < ErrorLinks[msg].length; i++) {
+                HTMLinput += `<button class="t-1 c-blue " onclick="location.href = '${ErrorLinks[msg][i][0]}'">${ErrorLinks[msg][i][1]}</button>`;
+            }
+        }
+        console.log(HTMLinput);
         return `<!DOCTYPE html>
         <html lang="en">
         <head>
@@ -11,6 +21,7 @@ const UI = {
             <style>
                 #box{
                     display: flex;
+                    flex-direction: column;
                     justify-content: center;
                     align-items: center;
                     height: 100vh;
@@ -26,6 +37,9 @@ const UI = {
                     <h1>
                         ${msg}
                     </h1>
+                    <div>
+                        ${HTMLinput}
+                    </div>
                 </div>
             </main>
             <footer>

@@ -4,6 +4,7 @@ import UI from './ui.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { access } from 'fs';
+import logPrefix from './log.js';
 export const defaultRole = 'member';
 const sessionTokenExpiration = 30; // Time before the Session Token Expires (in Minutes)
 export const Authentication = {
@@ -70,7 +71,7 @@ export const Authentication = {
             return next(); // Authentication Passed! (Admin Mode)
         }
         catch (error) {
-            console.log(error);
+            console.log(logPrefix("Error"), error);
             return res.status(500).send(Authentication.tools.resErrorPayload("internal server error!", API));
         }
     },
@@ -114,7 +115,7 @@ export const Authentication = {
             return true;
         }
         catch (error) {
-            console.log(error);
+            console.log(logPrefix("Error"), error);
             return false;
         }
     },
@@ -166,7 +167,7 @@ export const Authentication = {
             return response;
         }
         catch (error) {
-            console.log(error);
+            console.log(logPrefix("Error"), error);
             return response;
         }
     },
@@ -207,7 +208,7 @@ export const Authentication = {
             return info;
         }
         catch (error) {
-            console.log(error);
+            console.log(logPrefix("Error"), error);
             return info;
         }
     },

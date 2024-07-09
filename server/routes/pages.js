@@ -5,6 +5,7 @@ import ROOT from '../assets/root.js';
 import { logMSG } from '../assets/utils.js';
 import Authentication from '../assets/authentication.js';
 import jwt from 'jsonwebtoken';
+import logPrefix from '../assets/log.js';
 const files = await fs.readdir(path.join(ROOT, 'client/routes'), 'utf-8');
 const routeFiles = files.filter(value => value.endsWith('.html'));
 const routeFileURL = routeFiles.map(value => value.slice(0, value.length - 5).toLowerCase().replace(/[^a-z]/g, '-'));
@@ -18,7 +19,7 @@ for (let i = 0; i < routeFiles.length; i++) {
                 res.sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`));
             }
             catch (error) {
-                logMSG([`Unable to serve file: ${routeFiles[i]}`], [error], "Pages");
+                logMSG("Pages", `Unable to serve file: ${routeFiles[i]}`);
             }
         });
     }
@@ -29,7 +30,7 @@ for (let i = 0; i < routeFiles.length; i++) {
                     res.sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`));
                 }
                 catch (error) {
-                    logMSG([`Unable to serve file: ${routeFiles[i]}`], [error], "Pages");
+                    logMSG("Pages", `Unable to serve file: ${routeFiles[i]}`);
                 }
             });
         }
@@ -39,7 +40,7 @@ for (let i = 0; i < routeFiles.length; i++) {
                     res.sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`));
                 }
                 catch (error) {
-                    logMSG([`Unable to serve file: ${routeFiles[i]}`], [error], "Pages");
+                    logMSG("Pages", `Unable to serve file: ${routeFiles[i]}`);
                 }
             });
         }
@@ -49,7 +50,7 @@ for (let i = 0; i < routeFiles.length; i++) {
                     res.sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`));
                 }
                 catch (error) {
-                    logMSG([`Unable to serve file: ${routeFiles[i]}`], [error], "Pages");
+                    logMSG("Pages", `Unable to serve file: ${routeFiles[i]}`);
                 }
             });
         }

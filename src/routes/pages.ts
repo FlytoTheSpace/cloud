@@ -5,7 +5,8 @@ import ROOT from '../assets/root.js'
 import { logMSG } from '../assets/utils.js';
 import Authentication from '../assets/authentication.js';
 import jwt from 'jsonwebtoken'
-import {accountInterface} from '../assets/database.js'
+import { accountInterface } from '../assets/database.js'
+import logPrefix from '../assets/log.js';
 
 const files: string[] = await fs.readdir(path.join(ROOT, 'client/routes'), 'utf-8');
 const routeFiles: string[] = files.filter(value => value.endsWith('.html'))
@@ -19,42 +20,37 @@ const adminOnlyRoutes: string[] = []
 
 for (let i = 0; i < routeFiles.length; i++) {
     if (routeFileURL[i] === 'index') {
+
         router.get(`/`, (req, res) => {
             try {
                 res.sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`))
-            } catch (error) {
-                logMSG([`Unable to serve file: ${routeFiles[i]}`], [error], "Pages")
-            }
+            } catch (error) { logMSG("Pages", `Unable to serve file: ${routeFiles[i]}`) }
         })
+
     } else {
+
         if (TokenAuthenticationRoutes.includes(routeFileURL[i])) {
             router.get(`/${routeFileURL[i]}`, Authentication.token, (req, res) => {
                 try {
                     res.sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`))
-                } catch (error) {
-                    logMSG([`Unable to serve file: ${routeFiles[i]}`], [error], "Pages")
-                }
+                } catch (error) { logMSG("Pages", `Unable to serve file: ${routeFiles[i]}`) }
             })
         } else if (adminOnlyRoutes.includes(routeFileURL[i])) {
             router.get(`/${routeFileURL[i]}`, Authentication.tokenAdmin, (req, res) => {
                 try {
                     res.sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`))
-                } catch (error) {
-                    logMSG([`Unable to serve file: ${routeFiles[i]}`], [error], "Pages")
-                }
+                } catch (error) { logMSG("Pages", `Unable to serve file: ${routeFiles[i]}`) }
             })
         } else {
             router.get(`/${routeFileURL[i]}`, (req, res) => {
                 try {
                     res.sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`))
-                } catch (error) {
-                    logMSG([`Unable to serve file: ${routeFiles[i]}`], [error], "Pages")
-                }
+                } catch (error) { logMSG("Pages", `Unable to serve file: ${routeFiles[i]}`) }
             })
         }
     }
 };
-router.get('/cloud/u/', Authentication.token, (req, res)=>{
+router.get('/cloud/u/', Authentication.token, (req, res) => {
     res.sendFile(path.join(ROOT, 'client/page/cloud_interface.html'));
 })
 

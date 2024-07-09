@@ -5,7 +5,6 @@ import {Actions, FileObject, FileSystemTypes, checkPathType, pathExists, getFile
 import path from 'path'
 import fs from 'fs/promises'
 // Local Modules
-import { logMSG } from '../assets/utils.js';
 import { Accounts, accountInterface } from '../assets/database.js';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
@@ -104,9 +103,7 @@ router.post('/submit/login', async (req, res) => {
     } else {
         // If it's a Username:
         const username: string = usernameOrEmail.replace(/ \@ | \+ /g, '');
-
         if (username.length < 4) return res.status(406).json(resStatusPayload('invalid username!'));
-
         matchedAccount = await Accounts.findAccountOne.username(username); // The Matched Account
     }
     if (!matchedAccount) return res.status(406).json(resStatusPayload("account doesn't exist!"));
@@ -123,12 +120,10 @@ router.post('/submit/login', async (req, res) => {
     }
 
     // on Success:
-    console.log(`[Authentication] ${matchedAccount.username} has logged in.`)
     const expirationDate: Date = new Date();
     expirationDate.setFullYear(expirationDate.getFullYear() + 1);
-
+    
     const token: string = jwt.sign(matchedAccount, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string))
-
     // Giving The User a Token and Returning a Success Reponse
     res.cookie('token', token, {
         expires: expirationDate,
@@ -136,7 +131,8 @@ router.post('/submit/login', async (req, res) => {
         path: '/',
         sameSite: 'strict'
     }).status(200).json(resStatusPayload('successful login', true))
-
+    if(matchedAccount.role === 'admin'){console.log(logPrefix("Authentication"), `\u001B[31m${matchedAccount.username} (ADMIN)\u001B[0m has logged in.`)}
+    
 })
 // Register Submit API
 router.post('/submit/register', async (req, res) => {
@@ -172,12 +168,12 @@ router.post('/submit/register', async (req, res) => {
 
     const hashedPassword: string = structuredClone(hash)
     const userID: number = generateUserID()
-    const user = {
+    const user: accountInterface = {
         username: username,
         email: email,
         password: hashedPassword,
         userID: userID,
-        role: defaultRole,
+        role: (config.serverConfig.firstrun)?'admin':defaultRole,
         emailVerified: false
     }
     // Registering User
@@ -193,12 +189,17 @@ router.post('/submit/register', async (req, res) => {
     const expirationDate: Date = new Date();
     expirationDate.setFullYear(expirationDate.getFullYear() + 1);
 
+    
     res.cookie('token', token, {
         expires: expirationDate,
         httpOnly: true,
         path: '/',
         sameSite: 'strict'
     }).status(201).json(resStatusPayload('Successfully Registered your Account', true))
+    console.log(logPrefix("Account"), `Registered new User ${user.username} (${user.role === 'admin'? "\u001B[31mADMIN\u001B" : user.role})`)
+    if(config.serverConfig.firstrun){
+        config.changeConfig('firstrun', false)
+    }
 })
 router.get('/get/account/info', async (req, res) => {
     try {

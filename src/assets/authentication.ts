@@ -5,6 +5,7 @@ import UI from './ui.js';
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import { access } from 'fs';
+import logPrefix from './log.js';
 
 export type roles = 'member' | 'admin';
 export const defaultRole: roles = 'member';
@@ -79,7 +80,7 @@ export const Authentication = {
 
             return next() // Authentication Passed! (Admin Mode)
         } catch (error) {
-            console.log(error)
+            console.log(logPrefix("Error"), error)
             return res.status(500).send(Authentication.tools.resErrorPayload("internal server error!", API))
         }
     },
@@ -114,7 +115,7 @@ export const Authentication = {
 
             return true
         } catch (error) {
-            console.log(error)
+            console.log(logPrefix("Error"), error)
             return false
         }
     },
@@ -154,7 +155,7 @@ export const Authentication = {
 
             return response
         } catch (error) {
-            console.log(error)
+            console.log(logPrefix("Error"), error)
             return response
         }
     },
@@ -189,7 +190,7 @@ export const Authentication = {
             if(matchedAccount.role === 'admin') { info.admin = true };
             return info
         } catch (error) {
-            console.log(error)
+            console.log(logPrefix("Error"), error)
             return info
         }
     },

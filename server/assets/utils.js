@@ -27,8 +27,8 @@ export async function directoryExists(directoryPath) {
 export function isErrnoException(error) {
     return (error instanceof Error) && ('code' in error);
 }
-export const logMSG = (normalLog, devLog, prefix) => {
-    return (config.serverConfig.devMode) ? console.log(logPrefix(prefix || "Log"), ...normalLog) : console.log(logPrefix(prefix || "Log"), ...(devLog || normalLog));
+export const logMSG = (prefix, ...msg) => {
+    console.log(logPrefix(prefix), ...msg);
 };
 export const throwError = (normalError, devError) => {
     return (config.serverConfig.devMode) ? new Error(devError || normalError) : new Error(normalError);

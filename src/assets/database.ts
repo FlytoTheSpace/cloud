@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import mongoose from 'mongoose';
 import logPrefix from './log.js';
-import { logMSG, throwError } from './utils.js';
+import { throwError } from './utils.js';
 import jwt from 'jsonwebtoken';
 import { SessionTokenPayload } from './authentication.js';
 
@@ -68,8 +68,8 @@ export const Accounts = {
     updateOne: async (filter: object, updatedValue: object)=>{
         try{
             await AccountsModel.findOneAndUpdate(filter, updatedValue);
-        } catch(error){
-            logMSG(["Unable to Find/Update The Specified User"], [(error as Error).message], "Database")
+        } catch (error){
+            console.log(logPrefix("Error"), "Unable to Find/Update The Specified User")
         }
     },
     register: async (userData: accountInterface): Promise<void> => {

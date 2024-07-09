@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
 import logPrefix from './log.js';
-import { logMSG, throwError } from './utils.js';
+import { throwError } from './utils.js';
 import jwt from 'jsonwebtoken';
 const timeoutSeconds = 5;
 const connect = async () => {
@@ -53,7 +53,7 @@ export const Accounts = {
             await AccountsModel.findOneAndUpdate(filter, updatedValue);
         }
         catch (error) {
-            logMSG(["Unable to Find/Update The Specified User"], [error.message], "Database");
+            console.log(logPrefix("Error"), "Unable to Find/Update The Specified User");
         }
     },
     register: async (userData) => {
