@@ -11,14 +11,16 @@ interface configFileInterface {
     'devMode': boolean,
     'databaseDir': string,
     'namesizelimit': number,
-    'firstrun': boolean
+    'firstrun': boolean,
+    'browserOnRun': boolean
 }
 // Defaults
 const defaultconfigFile:configFileInterface = {
     'devMode': false,
     'databaseDir': "$ROOT/database",
     'namesizelimit': 255,
-    'firstrun': false
+    'firstrun': false,
+    'browserOnRun': true
 }
 
 let serverConfig: configFileInterface

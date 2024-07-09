@@ -8,7 +8,8 @@ const defaultconfigFile = {
     'devMode': false,
     'databaseDir': "$ROOT/database",
     'namesizelimit': 255,
-    'firstrun': false
+    'firstrun': false,
+    'browserOnRun': true
 };
 let serverConfig;
 // Checking If  the Configuration File is Missing
