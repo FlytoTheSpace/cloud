@@ -586,7 +586,7 @@ if (GUI) {
             </div>`
 
             )
-        const pendingFileCreation = $('.pendingFileCreation')
+        const pendingFileCreation = $('.pendingFileCreation')[0]
         pendingFileCreation.focus()
         pendingFileCreation.onkeydown = function({key}){
             if(key === 'Enter'){
@@ -611,10 +611,11 @@ if (GUI) {
             </div>`
 
             )
-        const pendingFolderCreation = $('.pendingFolderCreation')
+        const pendingFolderCreation = $('.pendingFolderCreation')[0]
         pendingFolderCreation.focus()
         pendingFolderCreation.onkeydown = function({key}){
             if(key === 'Enter'){
+                console.log("Enter!")
                 const path = $('#directoryInputBar').dataset.path
 
                 Action.createFolder(path, (pendingFolderCreation.textContent).sanitizePath())

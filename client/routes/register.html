@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Sign Up</title>
     <script src="/templates/js/default.js"></script>
     <link rel="stylesheet" href="/templates/css/theme/dark.css">
     <style>
@@ -19,21 +19,34 @@
             height: 70vh;
         }
 
-        #loginForm {
-            width: 90%;
+        #registerForm {
+            max-width: 450px;
+            width: 100%;
             height: 60vh;
             background: var(--secondary-background);
+            border-radius: 15px ;
             display: flex;
             justify-content: center;
             align-items: center;
             flex-direction: column;
         }
-
-        #loginForm>* {
-            margin: 5px 0;
+        #registerForm > div {
+            width: calc(100% - 50px);
+            height: calc(100% - 50px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
         }
 
-        #loginForm input {
+        #registerForm>  div * {
+            margin: 3px 0;
+        }
+        #registerForm > div label {
+            width: 322px;
+        }
+
+        #registerForm input {
             border-radius: 20px;
             width: 300px;
             font-size: medium;
@@ -41,6 +54,7 @@
 
             background-color: var(--secondary-background);
             padding: 10px;
+            border: solid 1px var(--text);
         }
 
         #submitButton {
@@ -49,16 +63,16 @@
             height: 40px !important;
         }
 
-        #loginForm input[placeholder] {
+        #registerForm input[placeholder] {
             color: var(--text);
         }
 
         @media screen and (max-width: 400px) {
-            #loginForm {
+            #registerForm {
                 width: 100vw;
             }
 
-            #loginForm input {
+            #registerForm input {
                 width: 80vw;
             }
 
@@ -77,58 +91,76 @@
     <header></header>
     <main>
         <div id="mainbox">
-            <form action="/submit/login" id="loginForm" , method="post">
-                <h1>Login</h1>
-                <input type="text" id="username" placeholder="username" required>
-                <p class="errorBox" id="usernameErrorBox"></p>
-                
-                <input type="text" id="email" placeholder="email" required>
-                <p class="errorBox" id="emailErrorBox"></p>
+            <form action="/submit/register" id="registerForm" , method="post">
+                <div>
+                    <h1>Sign Up</h1>
 
-                <input type="password" id="password" placeholder="password" required>
-                <p class="errorBox" id="passwordErrorBox"></p>
-
-                <button class="t-1 c-blue" id="submitButton">Login</button>
-                <p class="errorBox" id="otherErrorBox"></p>
+                    <label for="username"> Username
+                        <input type="text" id="username" placeholder="username" required>
+                    </label>
+                    <p class="errorBox" id="usernameErrorBox"></p>
+                    
+                    <label for="username"> Email
+                        <input type="text" id="email" placeholder="email" required>
+                    </label>
+                    <p class="errorBox" id="emailErrorBox"></p>
+                    
+                    <label for="username"> Password
+                        <input type="password" id="password" placeholder="password" required>
+                    </label>
+                    <p class="errorBox" id="passwordErrorBox"></p>
+                    
+                    <button class="t-1 c-blue" id="submitButton">Sign Up</button>
+                    <p class="errorBox" id="otherErrorBox"></p>
+                    <p> Already Have an account? <a href="/login">Log in</a> </p>
+                </div>
             </form>
         </div>
     </main>
     <footer></footer>
     <script>
+        function isEqual(baseValue, ...comparisonValues) {
+            let oneMatch = false
+            for (let i = 0; i < comparisonValues.length; i++) {
+                if (baseValue === comparisonValues[i]) {
+                    oneMatch = true
+                    break;
+                }
+            }
+            return oneMatch
+        }
         const usernameErrorBox = document.getElementById('usernameErrorBox');
         const emailErrorBox = document.getElementById('emailErrorBox');
         const passwordErrorBox = document.getElementById('passwordErrorBox');
         const otherErrorBox = document.getElementById('otherErrorBox');
-        const loginForm = document.getElementById('loginForm')
+        const registerForm = document.getElementById('registerForm')
 
         function checkStatus(status) {
-            if (status === 'please provide a username or email!' || status === 'invalid username!' || status === 'account doesn\'t exist!') {
 
-                usernameOrEmailErrorBox.innerHTML = status;
-
-            } else if (status === 'please provide a password!' || status === 'incorrect password!') {
-
-                passwordErrorBox.innerHTML = status;
-
-            } else if (status === 'successful login') {
-                // On Login
-                alert("Successfully Logged in!")
-
+            if (isEqual(status, 'username is occupied!')) {
+                usernameErrorBox.textContent = status
+            } else if (isEqual(status, 'account already exists!')) {
+                emailErrorBox.textContent = status
+            } else if (isEqual(status, 'internal server error!')) {
+                otherErrorBox.textContent = status + ". Please try again later or Report this Issue"
             } else {
-
                 otherErrorBox.innerHTML = status;
-
             }
         }
     </script>
     <script>
-        loginForm.addEventListener('submit', async (event) => {
+        const submitButton = $('#submitButton')
+        registerForm.addEventListener('submit', async (event) => {
             event.preventDefault()
 
-            const username = loginForm.elements["username"].value;
-            const email = loginForm.elements["email"].value;
-            const password = loginForm.elements["password"].value;
-
+            submitButton.classList.add('disabled')
+            submitButton.disabled = true
+            
+            const username = registerForm.elements["username"].value.toString().toLowerCase().replace(/[^a-z | 0-9 | \. | \_ | \-]/g, '');
+            if (!(/[a-z]/.test(username))) { usernameErrorBox.textContent = 'username must contain atleast one character (a-z)'; return null }
+            const email = registerForm.elements["email"].value.toString().toLowerCase().replace(/[^a-z | 0-9 | \. | \@ ]/g, '');
+            const password = registerForm.elements["password"].value.toString();
+            
             const loginRequest = await fetch('/submit/register', {
                 method: 'POST',
                 headers: {
@@ -139,9 +171,11 @@
                 referrerPolicy: "strict-origin",
                 mode: "same-origin"
             })
+            if (loginRequest.ok) { location.href = '/cloud' }
             const loginResponse = await loginRequest.json()
-
-
+            submitButton.disabled = ''
+            submitButton.classList.remove('disabled')
+            
             usernameErrorBox.innerHTML = ''
             emailErrorBox.innerHTML = ''
             passwordErrorBox.innerHTML = ''

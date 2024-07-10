@@ -80,7 +80,7 @@ router.post('/submit/login', async (req, res) => {
         return res.status(401).json(resStatusPayload('access denied!', false));
     }
     ;
-    const usernameOrEmail = req.body.usernameOrEmail.toString().toLowerCase().replace(/[^a-z | 0-9 | \. | \@ | \+ ]/g, ''); // Sanitizing it
+    const usernameOrEmail = req.body.usernameOrEmail.toString().toLowerCase().replace(/[^a-z | 0-9 | \. | \@ | \+ | \_ | \-]/g, ''); // Sanitizing it
     let matchedAccount;
     // Finding Account based on it's Username or Email
     if (req.body.usernameOrEmail.includes('@')) {
@@ -92,7 +92,7 @@ router.post('/submit/login', async (req, res) => {
         // If it's a Username:
         const username = usernameOrEmail.replace(/ \@ | \+ /g, '');
         if (username.length < 4)
-            return res.status(406).json(resStatusPayload('invalid username!'));
+            return res.status(406).json(resStatusPayload('username must be atleast 4 characters long!'));
         matchedAccount = await Accounts.findAccountOne.username(username); // The Matched Account
     }
     if (!matchedAccount)
@@ -137,7 +137,7 @@ router.post('/submit/register', async (req, res) => {
         return res.status(406).json(resStatusPayload('username is required!'));
     // Sanitization
     // Making Sure Username is Available and follows all the rules
-    const username = req.body.username.toString().toLowerCase().replace(/[^a-z | 0-9 | \.]/g, '');
+    const username = req.body.username.toString().toLowerCase().replace(/[^a-z | 0-9 | \. | \_ | \-]/g, '');
     // add your own username conditions here
     if (!(/[a-z]/.test(username))) {
         return res.status(406).json(resStatusPayload('username must contain atleast one character (a-z)'));
@@ -187,7 +187,7 @@ router.post('/submit/register', async (req, res) => {
         path: '/',
         sameSite: 'strict'
     }).status(201).json(resStatusPayload('Successfully Registered your Account', true));
-    console.log(logPrefix("Account"), `Registered new User ${user.username} (${user.role === 'admin' ? "\u001B[31mADMIN\u001B" : user.role})`);
+    console.log(logPrefix("Account"), `Registered new User ${user.username} (${user.role === 'admin' ? "\u001B[31mADMIN\u001B[0m" : user.role})`);
     if (config.serverConfig.firstrun) {
         config.changeConfig('firstrun', false);
     }
@@ -197,7 +197,7 @@ router.get('/get/account/info', async (req, res) => {
         res.status(200).json(await Authentication.getGeneralInfo(req));
     }
     catch (error) {
-        console.log(error);
+        console.log(logPrefix("API"), error);
         res.status(500).json({ loggedIn: false, admin: false });
     }
 });
@@ -262,6 +262,9 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
             }
             if (await checkPathType(completePath) !== 'file') {
                 return res.status(406).json(resStatusPayload("Path must lead to a File!"));
+            }
+            if (await isSymlinkAndBreaks(completePath)) {
+                return res.status(405).json(resStatusPayload("Not Allowed!"));
             }
             res.status(200).sendFile(completePath);
         }
@@ -402,7 +405,7 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
         }
     }
     catch (error) {
-        console.log(error);
+        console.log(logPrefix("Cloud"), error);
         return res.status(400).json(resStatusPayload("something went wrong!"));
     }
 });
@@ -415,7 +418,7 @@ router.get('/u/info/userid', Authentication.tokenAPI, (req, res) => {
         res.status(200).json({ 'userID': userID });
     }
     catch (error) {
-        console.log(error);
+        console.log(logPrefix("API"), error);
         res.status(500).send(resStatusPayload('internal server error!'));
     }
 });
@@ -436,6 +439,23 @@ async function missingPathandUserID(req, res, next) {
         return res.status(406).json(resStatusPayload("Path must be Provided"));
     }
     next();
+}
+async function isSymlinkAndBreaks(symlinkPath) {
+    try {
+        const stats = await fs.lstat(symlinkPath);
+        if (!stats.isSymbolicLink()) {
+            return false;
+        }
+        const link = path.resolve(await fs.readlink(symlinkPath));
+        if (link.includes(config.databasePath)) {
+            return false;
+        }
+        return true;
+    }
+    catch (error) {
+        console.log(error);
+        return false;
+    }
 }
 // Functions
 function generateUserID() {

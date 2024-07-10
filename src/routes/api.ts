@@ -1,6 +1,6 @@
 import 'dotenv/config'
 import express, { NextFunction, Request, Response } from 'express'
-import {Actions, FileObject, FileSystemTypes, checkPathType, pathExists, getFiles} from '../assets/filesystem.js'
+import { Actions, FileObject, FileSystemTypes, checkPathType, pathExists, getFiles } from '../assets/filesystem.js'
 // Built-in Modules
 import path from 'path'
 import fs from 'fs/promises'
@@ -40,8 +40,8 @@ declare global {
  * @returns {'status': string, 'success': boolean}
  * @example res.json(resStatusPayload("Account doesn't exist", false))
  */
-function resStatusPayload (status: string, success: boolean = false): { status: string; success: boolean; }{
-    return {'status': status, 'success': success}
+function resStatusPayload(status: string, success: boolean = false): { status: string; success: boolean; } {
+    return { 'status': status, 'success': success }
 }
 
 String.prototype.sanitizePath = function (fromROOT?: boolean) {
@@ -90,7 +90,7 @@ router.post('/submit/login', async (req, res) => {
         return res.status(401).json(resStatusPayload('access denied!', false));
     };
 
-    const usernameOrEmail: string = req.body.usernameOrEmail.toString().toLowerCase().replace(/[^a-z | 0-9 | \. | \@ | \+ ]/g, ''); // Sanitizing it
+    const usernameOrEmail: string = req.body.usernameOrEmail.toString().toLowerCase().replace(/[^a-z | 0-9 | \. | \@ | \+ | \_ | \-]/g, ''); // Sanitizing it
 
     let matchedAccount: accountInterface | undefined;
 
@@ -103,7 +103,7 @@ router.post('/submit/login', async (req, res) => {
     } else {
         // If it's a Username:
         const username: string = usernameOrEmail.replace(/ \@ | \+ /g, '');
-        if (username.length < 4) return res.status(406).json(resStatusPayload('invalid username!'));
+        if (username.length < 4) return res.status(406).json(resStatusPayload('username must be atleast 4 characters long!'));
         matchedAccount = await Accounts.findAccountOne.username(username); // The Matched Account
     }
     if (!matchedAccount) return res.status(406).json(resStatusPayload("account doesn't exist!"));
@@ -122,7 +122,7 @@ router.post('/submit/login', async (req, res) => {
     // on Success:
     const expirationDate: Date = new Date();
     expirationDate.setFullYear(expirationDate.getFullYear() + 1);
-    
+
     const token: string = jwt.sign(matchedAccount, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string))
     // Giving The User a Token and Returning a Success Reponse
     res.cookie('token', token, {
@@ -131,8 +131,8 @@ router.post('/submit/login', async (req, res) => {
         path: '/',
         sameSite: 'strict'
     }).status(200).json(resStatusPayload('successful login', true))
-    if(matchedAccount.role === 'admin'){console.log(logPrefix("Authentication"), `\u001B[31m${matchedAccount.username} (ADMIN)\u001B[0m has logged in.`)}
-    
+    if (matchedAccount.role === 'admin') { console.log(logPrefix("Authentication"), `\u001B[31m${matchedAccount.username} (ADMIN)\u001B[0m has logged in.`) }
+
 })
 // Register Submit API
 router.post('/submit/register', async (req, res) => {
@@ -146,7 +146,7 @@ router.post('/submit/register', async (req, res) => {
     // Sanitization
 
     // Making Sure Username is Available and follows all the rules
-    const username: string = req.body.username.toString().toLowerCase().replace(/[^a-z | 0-9 | \.]/g, '');
+    const username: string = req.body.username.toString().toLowerCase().replace(/[^a-z | 0-9 | \. | \_ | \-]/g, '');
     // add your own username conditions here
     if (!(/[a-z]/.test(username))) { return res.status(406).json(resStatusPayload('username must contain atleast one character (a-z)')); }
     if (!(await Accounts.isAvailable.username(username))) { return res.status(406).json(resStatusPayload('username is occupied!')); }
@@ -173,7 +173,7 @@ router.post('/submit/register', async (req, res) => {
         email: email,
         password: hashedPassword,
         userID: userID,
-        role: (config.serverConfig.firstrun)?'admin':defaultRole,
+        role: (config.serverConfig.firstrun) ? 'admin' : defaultRole,
         emailVerified: false
     }
     // Registering User
@@ -189,15 +189,15 @@ router.post('/submit/register', async (req, res) => {
     const expirationDate: Date = new Date();
     expirationDate.setFullYear(expirationDate.getFullYear() + 1);
 
-    
+
     res.cookie('token', token, {
         expires: expirationDate,
         httpOnly: true,
         path: '/',
         sameSite: 'strict'
     }).status(201).json(resStatusPayload('Successfully Registered your Account', true))
-    console.log(logPrefix("Account"), `Registered new User ${user.username} (${user.role === 'admin'? "\u001B[31mADMIN\u001B" : user.role})`)
-    if(config.serverConfig.firstrun){
+    console.log(logPrefix("Account"), `Registered new User ${user.username} (${user.role === 'admin' ? "\u001B[31mADMIN\u001B[0m" : user.role})`)
+    if (config.serverConfig.firstrun) {
         config.changeConfig('firstrun', false)
     }
 })
@@ -205,7 +205,7 @@ router.get('/get/account/info', async (req, res) => {
     try {
         res.status(200).json(await Authentication.getGeneralInfo(req))
     } catch (error) {
-        console.log(error)
+        console.log(logPrefix("API"), error)
         res.status(500).json({ loggedIn: false, admin: false })
     }
 })
@@ -257,6 +257,7 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
             const completePath = path.join(config.databasePath, `/${userID}/`, directory)
             if (!completePath.includes(config.databasePath)) { return res.status(405).json(resStatusPayload("Not Allowed!")) }
             if (await checkPathType(completePath) !== 'file') { return res.status(406).json(resStatusPayload("Path must lead to a File!")) }
+            if (await isSymlinkAndBreaks(completePath)){ return res.status(405).json(resStatusPayload("Not Allowed!")) }
 
             res.status(200).sendFile(completePath)
         } else if (action === 'copy') {
@@ -346,7 +347,7 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
             if (!completePath.includes(config.databasePath)) { return res.status(405).json(resStatusPayload("Not Allowed!")) }
             const PathType: FileSystemTypes = await checkPathType(completePath)
             if (PathType !== 'directory') { return res.status(406).json(resStatusPayload("Path is must be lead to a Folder!")) }
-            if (await pathExists(path.join(completePath, name))){ return res.status(409).json(resStatusPayload("File Already Exists!"))}
+            if (await pathExists(path.join(completePath, name))) { return res.status(409).json(resStatusPayload("File Already Exists!")) }
 
             fs.writeFile(path.join(completePath, name), data)
 
@@ -364,14 +365,14 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
             if (!completePath.includes(config.databasePath)) { return res.status(405).json(resStatusPayload("Not Allowed!")) }
             const PathType: FileSystemTypes = await checkPathType(completePath)
             if (PathType === 'unknown') { return res.status(406).json(resStatusPayload("Path is must be lead to a File/Folder!")) }
-            if (await pathExists(path.join(completePath, name))){ return res.status(409).json(resStatusPayload("Folder Already Exists!"))}
+            if (await pathExists(path.join(completePath, name))) { return res.status(409).json(resStatusPayload("Folder Already Exists!")) }
 
             fs.mkdir(path.join(completePath, name))
 
             res.status(200).json({ 'status': `successfully created The File!`, 'success': false })
         }
     } catch (error) {
-        console.log(error)
+        console.log(logPrefix("Cloud"), error)
         return res.status(400).json(resStatusPayload("something went wrong!"))
     }
 })
@@ -382,7 +383,7 @@ router.get('/u/info/userid', Authentication.tokenAPI, (req, res) => {
 
         res.status(200).json({ 'userID': userID })
     } catch (error) {
-        console.log(error)
+        console.log(logPrefix("API"), error)
         res.status(500).send(resStatusPayload('internal server error!'))
     }
 })
@@ -398,9 +399,21 @@ async function missingPathandUserID(req: Request, res: Response, next: NextFunct
     } catch (error) {
         return res.status(400).send({ 'status': 'invalid user ID', 'success': false })
     }
-    
+
     if (!req.headers.path) { return res.status(406).json(resStatusPayload("Path must be Provided")) }
     next();
+}
+async function isSymlinkAndBreaks(symlinkPath: string) {
+    try {
+        const stats = await fs.lstat(symlinkPath);
+        if (!stats.isSymbolicLink()) { return false }
+        const link = path.resolve(await fs.readlink(symlinkPath))
+        if(link.includes(config.databasePath)){ return false}
+        return true
+    } catch (error) {
+        console.log(error);
+        return false;
+    }
 }
 // Functions
 function generateUserID(): number {

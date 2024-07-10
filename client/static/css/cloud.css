@@ -43,33 +43,39 @@ main {
 
 @media screen and (max-width: 900px) {
     main {
-        display: block;
+        display: flex;
     }
 
     #mainContainer {
         margin: 0 !important;
         width: 100%;
         min-height: 70vh;
-        padding-bottom: 50px;
     }
     #sidebar {
-        background: var(--main-background);
+        background: var(--secondary-background);
         position: fixed;
-        display: block;
+        display: flex;
+        justify-content: center;
         bottom: 0;
         left: 0;
         z-index: 1;
         width: 100%;
-        height: 50px;
+        height: 75px;
     }
     #sidebar > ul{
+        border-top-left-radius: 30px;
+        border-top-right-radius: 30px;
+        background: var(--navigation-background);
+        width: 80%;
         margin: 0 0;
         align-items: center;
         justify-content: space-evenly;
         flex-direction: row;
+        height: 100%;
     }
     #sidebar > ul > li {
-        width: unset;
+        width: 70px;
+        height: 45px;
         background: transparent;
     }
     .sidebarLinkText{

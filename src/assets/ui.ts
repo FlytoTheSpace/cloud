@@ -1,6 +1,7 @@
 
 const ErrorLinks: { [key: string]: Array<[string, string]> } = {
-    "Invalid Token": [["/login", "Login"], ["/register", "Register"]]
+    "Invalid Token": [["/login", "Login"], ["/register", "Register"]],
+    "Account Required": [["/login", "Login"], ["/register", "Register"]]
 }
 
 
@@ -14,7 +15,6 @@ const UI = {
                 HTMLinput += `<button class="t-1 c-blue " onclick="location.href = '${ErrorLinks[msg][i][0]}'">${ErrorLinks[msg][i][1]}</button>`
             }
         }
-        console.log(HTMLinput)
 
         return `<!DOCTYPE html>
         <html lang="en">

@@ -20,17 +20,30 @@
         }
 
         #loginForm {
-            width: 90%;
+            max-width: 450px;
+            width: 100%;
             height: 60vh;
             background: var(--secondary-background);
+            border-radius: 15px ;
             display: flex;
             justify-content: center;
             align-items: center;
             flex-direction: column;
         }
+        #loginForm > div {
+            width: calc(100% - 50px);
+            height: calc(100% - 50px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
 
-        #loginForm>* {
-            margin: 5px 0;
+        #loginForm>  div * {
+            margin: 4px 0;
+        }
+        #loginForm > div label {
+            width: 322px;
         }
 
         #loginForm input {
@@ -41,6 +54,7 @@
 
             background-color: var(--secondary-background);
             padding: 10px;
+            border: solid 1px var(--text);
         }
 
         #submitButton {
@@ -78,13 +92,20 @@
     <main>
         <div id="mainbox">
             <form action="/submit/login" id="loginForm" , method="post">
-                <h1>Login</h1>
-                <input type="text" id="usernameOrEmail" placeholder="Username Or Email" required>
-                <p class="errorBox" id="usernameOrEmailErrorBox"></p>
-                <input type="password" id="password" placeholder="Password" required>
-                <p class="errorBox" id="passwordErrorBox"></p>
-                <button class="t-1 c-blue" id="submitButton">Login</button>
-                <p class="errorBox" id="otherErrorBox"></p>
+                <div>
+                    <h1>Login</h1>
+                    <label for="usernameOrEmail">Username/Email
+                        <input type="text" id="usernameOrEmail" placeholder="Username Or Email" required>
+                    </label>
+                    <p class="errorBox" id="usernameOrEmailErrorBox"></p>
+                    <label for="password">Password
+                        <input type="password" id="password" placeholder="Password" required>
+                    </label>
+                    <p class="errorBox" id="passwordErrorBox"></p>
+                    <button class="t-1 c-blue" id="submitButton">Login </button>
+                    <p class="errorBox" id="otherErrorBox"></p>
+                    <p> don't have an account? <a href="/register">Sign up</a> </p>
+                </div>
             </form>
         </div>
     </main>
@@ -95,33 +116,43 @@
         const otherErrorBox = document.getElementById('otherErrorBox');
         const loginForm = document.getElementById('loginForm')
 
+        function isEqual(baseValue, ...comparisonValues) {
+            let oneMatch = false
+            for (let i = 0; i < comparisonValues.length; i++) {
+                if (baseValue === comparisonValues[i]) {
+                    oneMatch = true
+                    break;
+                }
+            }
+            return oneMatch
+        }
+        
         function checkStatus(status) {
-            if (status === 'please provide a username or email!' || status === 'invalid username!' || status === 'account doesn\'t exist!') {
-
-                usernameOrEmailErrorBox.innerHTML = status;
-
-            } else if (status === 'please provide a password!' || status === 'incorrect password!') {
-
-                passwordErrorBox.innerHTML = status;
-
+            if (isEqual(status, 'please provide a username or email!', 'invalid username!', 'account doesn\'t exist!')) {
+                usernameOrEmailErrorBox.textContent = status;
+            } else if (isEqual(status === 'incorrect password!')) {
+                passwordErrorBox.textContent = status;
             } else if (status === 'successful login') {
-                // On Login
-                alert("Successfully Logged in!")
-
+                location.href = '/cloud/'
             } else {
-
                 otherErrorBox.innerHTML = status;
-
             }
         }
     </script>
     <script>
+        const submitButton = $('#submitButton')
         loginForm.addEventListener('submit', async (event) => {
             event.preventDefault()
 
-            const usernameOrEmail = loginForm.elements["usernameOrEmail"].value;
-            const password = loginForm.elements["password"].value;
+            submitButton.classList.add('disabled')
+            submitButton.disabled = true
 
+            const usernameOrEmail = loginForm.elements["usernameOrEmail"].value.toString().toLowerCase().replace(/[^a-z | 0-9 | \. | \@ | \+ | \_ | \- ]/g, '');
+            if(!usernameOrEmail.includes('@') && usernameOrEmail.length < 4){
+                usernameOrEmailErrorBox.textContent ='username must be atleast 4 characters long!';
+                return null;
+            }
+            const password = loginForm.elements["password"].value.toString();
             const loginRequest = await fetch('/submit/login', {
                 method: 'POST',
                 headers: {
@@ -132,8 +163,10 @@
                 referrerPolicy: "strict-origin",
                 mode: "same-origin"
             })
+            if (loginRequest.ok) { location.href = '/cloud' }
             const loginResponse = await loginRequest.json()
-
+            submitButton.disabled = ''
+            submitButton.classList.remove('disabled')
 
             usernameOrEmailErrorBox.innerHTML = ''
             passwordErrorBox.innerHTML = ''

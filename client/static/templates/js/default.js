@@ -1,4 +1,4 @@
-const $ = (query, multiple) => multiple ? document.querySelectorAll(query) : document.querySelector(query);
+const $ = (query) => query.includes('.') ? Array.from(document.querySelectorAll(query)) : document.querySelector(query);
 
 const loadDefaultNavbar = async () => {
     const navbar = await fetch(`/templates/html/navbar.html`)
@@ -60,15 +60,24 @@ const loadCSS = async () => {
 }
 const loadDefault = async () => {
     await loadCSS()
-    loadDefaultNavbar();
-}
-
-(async () => {
+    await loadDefaultNavbar();
     const info = await fetch('/get/account/info')
     if(!info.ok){
         alert("Unable to verify your login")
     }
     const userInfo = await info.json()
-})()
 
+    console.log(userInfo)
+
+    if(!userInfo.loggedIn){
+        const [_, navbarlink1, navbarlink2] = $('.nav-item');
+        navbarlink1.onclick = '';
+        navbarlink2.onclick = '';
+        navbarlink1.addEventListener('click', ()=>{location.href = '/login'});
+        navbarlink2.addEventListener('click', ()=>{location.href = '/register'});
+        navbarlink1.innerHTML = "Login";
+        navbarlink2.innerHTML = "Register";
+    };
+}
 loadDefault()
+    
