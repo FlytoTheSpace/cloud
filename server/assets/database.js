@@ -3,13 +3,10 @@ import mongoose from 'mongoose';
 import logPrefix from './log.js';
 import { throwError } from './utils.js';
 import jwt from 'jsonwebtoken';
+import env from './env.js';
 const timeoutSeconds = 5;
 const connect = async () => {
-    if (!process.env.mongoDBURI) {
-        throwError(`${logPrefix('Database')} MongoDB URI not Provided, please Provide it!`);
-        process.exit(1);
-    }
-    mongoose.connect(process.env.mongoDBURI);
+    mongoose.connect(env.mongoDBURI);
     return `Connected to MongoDB`;
 };
 const timeout = new Promise((_, rej) => {
@@ -68,7 +65,7 @@ export const Accounts = {
     token: {
         validate: (token) => {
             try {
-                const decodedToken = jwt.verify(token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
+                const decodedToken = jwt.verify(token, env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
                 return decodedToken;
             }
             catch (error) {
@@ -79,7 +76,7 @@ export const Accounts = {
     sessionToken: {
         validate: (sessionToken) => {
             try {
-                const decodedSessionToken = jwt.verify(sessionToken, process.env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY);
+                const decodedSessionToken = jwt.verify(sessionToken, env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY);
                 return decodedSessionToken;
             }
             catch (error) {

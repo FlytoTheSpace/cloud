@@ -16,8 +16,8 @@ import Authentication, { defaultRole } from '../assets/authentication.js';
 import { Stats } from 'fs';
 import multer from 'multer';
 import { exec, execSync } from 'child_process';
-import { buffer } from 'stream/consumers';
 const router = express.Router();
+import env from '../assets/env.js';
 router.use(bodyParser.urlencoded({ extended: true }));
 router.use(cookieParser());
 router.use(express.json());
@@ -47,7 +47,7 @@ String.prototype.sanitizeFolderNameForPath = function () {
 };
 const cloudStorage = multer.diskStorage({
     destination: (req, file, next) => {
-        const userId = (req.params.userid === 'u') ? jwt.verify(req.cookies.token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID : parseInt(req.params.userid);
+        const userId = (req.params.userid === 'u') ? jwt.verify(req.cookies.token, env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID : parseInt(req.params.userid);
         const directory = req.headers.path.toString().sanitizePath();
         const destinationPath = path.join(config.databasePath, `/${userId}/`, directory);
         next(null, destinationPath);
@@ -112,7 +112,7 @@ router.post('/submit/login', async (req, res) => {
     // on Success:
     const expirationDate = new Date();
     expirationDate.setFullYear(expirationDate.getFullYear() + 1);
-    const token = jwt.sign(matchedAccount, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
+    const token = jwt.sign(matchedAccount, env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
     // Giving The User a Token and Returning a Success Reponse
     res.cookie('token', token, {
         expires: expirationDate,
@@ -178,7 +178,7 @@ router.post('/submit/register', async (req, res) => {
         return res.status(500).json(resStatusPayload('internal server error!'));
     }
     // On Success:
-    const token = jwt.sign(user, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
+    const token = jwt.sign(user, env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
     const expirationDate = new Date();
     expirationDate.setFullYear(expirationDate.getFullYear() + 1);
     res.cookie('token', token, {
@@ -209,7 +209,7 @@ router.get('/cloud/files/:userid', Authentication.tokenAPI, async (req, res) => 
     }
     let userID;
     try {
-        userID = (req.params.userid === 'u') ? jwt.verify(req.cookies.token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID : parseInt(req.params.userid);
+        userID = (req.params.userid === 'u') ? jwt.verify(req.cookies.token, env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID : parseInt(req.params.userid);
     }
     catch (error) {
         return res.status(400).send({ 'status': 'invalid user ID', 'success': false });
@@ -237,7 +237,7 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
     }
     let userID;
     try {
-        userID = (req.params.userid === 'u') ? jwt.verify(req.cookies.token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID : parseInt(req.params.userid);
+        userID = (req.params.userid === 'u') ? jwt.verify(req.cookies.token, env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID : parseInt(req.params.userid);
     }
     catch (error) {
         return res.status(400).send({ 'status': 'invalid user ID', 'success': false });
@@ -414,7 +414,7 @@ router.get('/u/info/userid', Authentication.tokenAPI, (req, res) => {
         if (!req.cookies.token) {
             res.status(200).json({ 'userID': null });
         }
-        const userID = jwt.verify(req.cookies.token, process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID;
+        const userID = jwt.verify(req.cookies.token, env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID;
         res.status(200).json({ 'userID': userID });
     }
     catch (error) {

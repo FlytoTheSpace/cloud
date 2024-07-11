@@ -7,6 +7,7 @@ import Authentication from '../assets/authentication.js';
 import jwt from 'jsonwebtoken'
 import { accountInterface } from '../assets/database.js'
 import logPrefix from '../assets/log.js';
+import env from '../assets/env.js';
 
 const files: string[] = await fs.readdir(path.join(ROOT, 'client/routes'), 'utf-8');
 const routeFiles: string[] = files.filter(value => value.endsWith('.html'))
@@ -52,6 +53,9 @@ for (let i = 0; i < routeFiles.length; i++) {
 };
 router.get('/cloud/u/', Authentication.token, (req, res) => {
     res.sendFile(path.join(ROOT, 'client/page/cloud_interface.html'));
+})
+router.get(env.ADMIN_PAGE_URL, Authentication.tokenAdmin, (req, res)=>{
+    res.sendFile(path.join(ROOT, `client/page/admin.html`))
 })
 
 export default router

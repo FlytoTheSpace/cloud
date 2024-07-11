@@ -16,8 +16,8 @@ import Authentication, { defaultRole } from '../assets/authentication.js';
 import { Stats } from 'fs'
 import multer from 'multer'
 import { exec, execSync } from 'child_process';
-import { buffer } from 'stream/consumers';
 const router = express.Router()
+import env from '../assets/env.js'
 
 router.use(bodyParser.urlencoded({ extended: true }));
 router.use(cookieParser());
@@ -59,7 +59,7 @@ String.prototype.sanitizeFolderNameForPath = function () {
 
 const cloudStorage = multer.diskStorage({
     destination: (req: Request, file, next) => {
-        const userId: number = (req.params.userid === 'u') ? (jwt.verify(req.cookies.token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface).userID : parseInt(req.params.userid);
+        const userId: number = (req.params.userid === 'u') ? (jwt.verify(req.cookies.token, env.ACCOUNTS_TOKEN_VERIFICATION_KEY) as accountInterface).userID : parseInt(req.params.userid);
 
         const directory = ((req.headers.path as any).toString() as string).sanitizePath()
         const destinationPath = path.join(config.databasePath, `/${userId}/`, directory)
@@ -123,7 +123,7 @@ router.post('/submit/login', async (req, res) => {
     const expirationDate: Date = new Date();
     expirationDate.setFullYear(expirationDate.getFullYear() + 1);
 
-    const token: string = jwt.sign(matchedAccount, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string))
+    const token: string = jwt.sign(matchedAccount, env.ACCOUNTS_TOKEN_VERIFICATION_KEY)
     // Giving The User a Token and Returning a Success Reponse
     res.cookie('token', token, {
         expires: expirationDate,
@@ -184,7 +184,7 @@ router.post('/submit/register', async (req, res) => {
     }
 
     // On Success:
-    const token: string = jwt.sign(user, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string));
+    const token: string = jwt.sign(user, env.ACCOUNTS_TOKEN_VERIFICATION_KEY);
 
     const expirationDate: Date = new Date();
     expirationDate.setFullYear(expirationDate.getFullYear() + 1);
@@ -216,7 +216,7 @@ router.get('/cloud/files/:userid', Authentication.tokenAPI, async (req, res) => 
     if (!req.params.userid) { return res.status(400).send({ 'status': 'please provide userid', 'success': false }) }
     let userID: number;
     try {
-        userID = (req.params.userid === 'u') ? (jwt.verify(req.cookies.token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface).userID : parseInt(req.params.userid);
+        userID = (req.params.userid === 'u') ? (jwt.verify(req.cookies.token, env.ACCOUNTS_TOKEN_VERIFICATION_KEY) as accountInterface).userID : parseInt(req.params.userid);
     } catch (error) { return res.status(400).send({ 'status': 'invalid user ID', 'success': false }) }
 
     const directory: string = ((req.headers.path ? req.headers.path : '/').toString()).sanitizePath()
@@ -239,7 +239,7 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
     if (!req.params.userid) { return res.status(400).send({ 'status': 'please provide userid', 'success': false }) }
     let userID: number;
     try {
-        userID = (req.params.userid === 'u') ? (jwt.verify(req.cookies.token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface).userID : parseInt(req.params.userid);
+        userID = (req.params.userid === 'u') ? (jwt.verify(req.cookies.token, env.ACCOUNTS_TOKEN_VERIFICATION_KEY) as accountInterface).userID : parseInt(req.params.userid);
     } catch (error) { return res.status(400).send({ 'status': 'invalid user ID', 'success': false }) }
 
     if (!req.headers.action) { return res.status(406).json(resStatusPayload('An Action must be Provided')) }
@@ -379,7 +379,7 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
 router.get('/u/info/userid', Authentication.tokenAPI, (req, res) => {
     try {
         if (!req.cookies.token) { res.status(200).json({ 'userID': null }) }
-        const userID: number = (jwt.verify(req.cookies.token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface).userID
+        const userID: number = (jwt.verify(req.cookies.token, env.ACCOUNTS_TOKEN_VERIFICATION_KEY) as accountInterface).userID
 
         res.status(200).json({ 'userID': userID })
     } catch (error) {

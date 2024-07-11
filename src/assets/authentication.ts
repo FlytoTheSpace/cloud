@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import { access } from 'fs';
 import logPrefix from './log.js';
-
+import env from './env.js';
 export type roles = 'member' | 'admin';
 export const defaultRole: roles = 'member';
 export interface SessionTokenPayload {
@@ -67,7 +67,7 @@ export const Authentication = {
                 const expiration: Date = new Date();
                 expiration.setMinutes(expiration.getMinutes() + sessionTokenExpiration);
 
-                const sessionToken: string = jwt.sign(sessionTokenPayload, (process.env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY as string))
+                const sessionToken: string = jwt.sign(sessionTokenPayload, env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY)
                 res.cookie('sessionToken', sessionToken, {
                     expires: expiration,
                     httpOnly: true,

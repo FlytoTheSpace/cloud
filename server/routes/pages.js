@@ -6,6 +6,7 @@ import { logMSG } from '../assets/utils.js';
 import Authentication from '../assets/authentication.js';
 import jwt from 'jsonwebtoken';
 import logPrefix from '../assets/log.js';
+import env from '../assets/env.js';
 const files = await fs.readdir(path.join(ROOT, 'client/routes'), 'utf-8');
 const routeFiles = files.filter(value => value.endsWith('.html'));
 const routeFileURL = routeFiles.map(value => value.slice(0, value.length - 5).toLowerCase().replace(/[^a-z]/g, '-'));
@@ -59,5 +60,8 @@ for (let i = 0; i < routeFiles.length; i++) {
 ;
 router.get('/cloud/u/', Authentication.token, (req, res) => {
     res.sendFile(path.join(ROOT, 'client/page/cloud_interface.html'));
+});
+router.get(env.ADMIN_PAGE_URL, Authentication.tokenAdmin, (req, res) => {
+    res.sendFile(path.join(ROOT, `client/page/admin.html`));
 });
 export default router;

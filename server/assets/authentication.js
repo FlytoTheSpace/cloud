@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { access } from 'fs';
 import logPrefix from './log.js';
+import env from './env.js';
 export const defaultRole = 'member';
 const sessionTokenExpiration = 30; // Time before the Session Token Expires (in Minutes)
 export const Authentication = {
@@ -57,7 +58,7 @@ export const Authentication = {
                 };
                 const expiration = new Date();
                 expiration.setMinutes(expiration.getMinutes() + sessionTokenExpiration);
-                const sessionToken = jwt.sign(sessionTokenPayload, process.env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY);
+                const sessionToken = jwt.sign(sessionTokenPayload, env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY);
                 res.cookie('sessionToken', sessionToken, {
                     expires: expiration,
                     httpOnly: true,

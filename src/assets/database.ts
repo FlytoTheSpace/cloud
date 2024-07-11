@@ -4,6 +4,7 @@ import logPrefix from './log.js';
 import { throwError } from './utils.js';
 import jwt from 'jsonwebtoken';
 import { SessionTokenPayload } from './authentication.js';
+import env from './env.js';
 
 export interface accountInterface {
     username: string,
@@ -17,11 +18,7 @@ const timeoutSeconds = 5
 
 
 const connect = async ():Promise<string>=>{
-    if(!process.env.mongoDBURI){
-        throwError(`${logPrefix('Database')} MongoDB URI not Provided, please Provide it!`)
-        process.exit(1)
-    }
-    mongoose.connect(process.env.mongoDBURI);
+    mongoose.connect(env.mongoDBURI);
     return `Connected to MongoDB`;
 }
 
@@ -84,7 +81,7 @@ export const Accounts = {
     token: {
         validate: (token: string): accountInterface | null =>{
             try{
-                const decodedToken: accountInterface = (jwt.verify(token, (process.env.ACCOUNTS_TOKEN_VERIFICATION_KEY as string)) as accountInterface)
+                const decodedToken: accountInterface = (jwt.verify(token, env.ACCOUNTS_TOKEN_VERIFICATION_KEY) as accountInterface)
                 return decodedToken;
             } catch (error){
                 return null
@@ -94,7 +91,7 @@ export const Accounts = {
     sessionToken: {
         validate: (sessionToken: string): SessionTokenPayload  | null =>{
             try{
-                const decodedSessionToken: SessionTokenPayload = (jwt.verify(sessionToken, (process.env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY as string)) as SessionTokenPayload)
+                const decodedSessionToken: SessionTokenPayload = (jwt.verify(sessionToken, env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY) as SessionTokenPayload)
                 return decodedSessionToken
             } catch (error){
                 return null
