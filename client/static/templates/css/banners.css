@@ -1,0 +1,62 @@
+div.banner{
+    width: 100%;
+    min-height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: larger;
+    color: white;
+    background: white;
+    animation: banner-slide-in 1s ease-in-out;
+}
+div.banner.float{
+    display: flex;
+}
+#floatBannerContainer{
+    position: absolute;
+    top: var(--navbar-height);
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-height: 150px;
+}
+div.banner.c-green{ background: var(--green) }
+div.banner.c-red{ background: var(--red) }
+div.banner.c-blue{ background: var(--blue) }
+div.banner.c-yellow{ background: var(--yellow); color: black;}
+
+
+div.banner.withIcon {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+div.banner.withIcon> *{
+    margin: 0 15px
+}
+div.banner.withIcon>img{
+    max-height: 1.2em;
+    max-width: 1.2em;
+}
+
+@keyframes banner-slide-in {
+    0% {
+        opacity: 0;
+        transform: translateX(-100%);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+@keyframes banner-slide-out {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-100%);
+    }
+}

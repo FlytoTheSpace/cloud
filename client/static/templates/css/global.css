@@ -12,3 +12,15 @@ main{
 input:focus{
     outline: none;
 }
+:root{
+    --red: rgb(235, 96, 96);
+    --blue: rgb(30, 144, 255);
+    --green: rgb(85, 204, 66);
+    --yellow: rgb(255, 239, 0);
+    
+    /* RGB values to add Transparency to The Colors if needed*/
+    --val-red: 235, 96, 96;
+    --val-blue: 30, 144, 255;
+    --val-green: 72, 227, 48;
+    --val-yellow: 255, 239, 0;
+}

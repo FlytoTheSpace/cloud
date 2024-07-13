@@ -5,10 +5,6 @@
     --bold-background: #3f3f3f;
     --navbar: #252525;
     --text: white;
-
-    --error: rgb(235, 96, 96);
-    --success: rgb(125, 245, 125);
-
 }
 body{
     color: var(--text);

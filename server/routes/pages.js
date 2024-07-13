@@ -61,7 +61,10 @@ for (let i = 0; i < routeFiles.length; i++) {
 router.get('/cloud/u/', Authentication.token, (req, res) => {
     res.sendFile(path.join(ROOT, 'client/page/cloud_interface.html'));
 });
-router.get(env.ADMIN_PAGE_URL, Authentication.tokenAdmin, (req, res) => {
+router.get('/get/admin-dashboard-url', Authentication.tokenAdminAPI, (req, res) => {
+    res.status(200).send({ data: `/${env.ADMIN_PAGE_URL}` });
+});
+router.get(`/${env.ADMIN_PAGE_URL}`, Authentication.tokenAdmin, (req, res) => {
     res.sendFile(path.join(ROOT, `client/page/admin.html`));
 });
 export default router;

@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="/css/cloud.css">
     <script src="/js/cloud_sidebar.js" defer></script>
     <script src="/js/cloud.js" defer></script>
+    <script src="/templates/js/banner.js" defer></script>
 
     <!-- MAIN --> <style>
         #mainContainer {
@@ -233,14 +234,14 @@
     <!-- Upload Section -->
     <div id="uploadWindowBackground">
         <div id="uploadWindow">
-            <p>Select or Drang and Drop Files here!</p>
+            <p>Select or Drag and Drop Files here!</p>
             <form action="/cloud/files/" method="post" id="uploadForm" enctype="multipart/form-data">
                 <label for="uploadInput" id="uploadInputLabel"></label>
                 <input type="file" name="file" id="uploadInput" multiple>
             </form>
             <div id="bottombar">
-                <button class="t-1 c-blue withIcon" id="uploadBtn"><img src="/assets/images/icons/light/upload.svg" alt="">Upload</button>
-                <button class="t-2 c-blue withIcon" id="uploadCancel"><img src="/assets/images/icons/light/close.svg" alt="">Cancel</button>
+                <button class="fill size-medium c-blue withIcon" id="uploadBtn"><img src="/assets/images/icons/light/upload.svg" alt="">Upload</button>
+                <button class="outline size-medium c-light-gray withIcon" id="uploadCancel"><img src="/assets/images/icons/light/close.svg" alt="">Cancel</button>
             </div>
         </div>
     </div>
@@ -253,7 +254,7 @@
             <!-- Action bar -->
             <div id="mainSectionTopBar">
                 <div id="optionsbar">
-                    <button class="t-1 c-blue withIcon" id="uploadWindowOpenBtn"><img src="/assets/images/icons/light/upload.svg" alt="" data-const="true">Upload</button>
+                    <button class="fill size-medium c-blue withIcon" id="uploadWindowOpenBtn"><img src="/assets/images/icons/light/upload.svg" alt="" data-const="true">Upload</button>
                 </div>
                 <script>
                     const optionsbar = document.getElementById("optionsbar");

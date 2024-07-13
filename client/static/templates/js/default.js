@@ -1,5 +1,13 @@
 const $ = (query) => query.includes('.') ? Array.from(document.querySelectorAll(query)) : document.querySelector(query);
 
+function UUID() {
+    const minID = 1000000000;
+    const maxID = 9999999999;
+    let ID = `UUID-${Math.floor(Math.random() * (maxID - minID + 1)) + minID}${new Date().getMilliseconds()}`;
+    return ID
+}
+console.log(UUID())
+
 const loadDefaultNavbar = async () => {
     const navbar = await fetch(`/templates/html/navbar.html`)
     if (!navbar.ok) {

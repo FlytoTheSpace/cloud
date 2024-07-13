@@ -1,64 +1,27 @@
-/* Button Colours */
-button.c-green {
-    background-color: lime;
-    color: white;
-    border-radius: 0.5vw;
-}
-
-button.c-green:hover {
-    background-color: green;
-    transition: 0.2s;
-}
-
-button.c-blue {
-    background-color: dodgerblue;
-    color: white;
-}
-
-button.c-blue:hover,button.c-blue.disabled{
-    background-color: #0050a0;
-    transition: 0.2s;
-}
-button.c-red {
-    background-color: var(--error);
-    color: white;
-}
-
-button.c-red:hover {
-    background-color: rgb(170, 36, 36);
-    transition: 0.2s;
-}
-
-button.c-gray {
-    background-color: #2b2b2b;
-    color: white;
-}
-
-button.c-gray:hover {
-    background-color: darkslategray;
-    transition: 0.2s;
-}
-button.c-transparent{
-    background-color: transparent;
+button{
+    margin: 4px 2px;
 }
 
 /* Styles */
-button.t-1{
+button.fill{
+    min-width: 100px;
     padding: 0.2vh 1.5vw;
     font-size: 1.2em;
     cursor: pointer;
     transition: 0.2s;
     border-radius: 0.5em;
-    border-style: none;
+    border: solid 2px;
 }
-button.t-2{
+button.outline{
+    min-width: 100px;
     padding: 0.2vh 1.5vw;
     font-size: 1.2em;
     cursor: pointer;
     transition: 0.2s;
     border-radius: 0.5em;
-    border-width: 2px;
-    border-style: solid;
+    border: solid 2px;
+
+    color: var(--text) !important;
     background: transparent !important;
 }
 button.circle{
@@ -70,21 +33,15 @@ button.circle{
     transition: 0.2s;
 }
 button.circle.primary{
-    transition: 0.2s;
-    cursor: pointer;
     padding: 0.2vh;
     height: 2em;
     width: 2em;
 }
 button.circle.secondary{
-    transition: 0.2s;
-    cursor: pointer;
     padding: 0.2vh;
     height: 1.5em;
     width: 1.5em;
 }
-
-
 /* general */
 button.fullspan {
     width: 100%;
@@ -102,4 +59,81 @@ button.withIcon img{
 button.circle.c-transparent.withIcon{
     border-radius: 0 !important;
     padding: 0 !important;
+}
+
+/* Button Colours */
+button.c-green {
+    background-color: var(--green);
+    border-color: var(--green);
+    color: white;
+}
+
+button.c-green:hover, button.c-green.disabled {
+    background-color: green;
+    border-color: green;
+    transition: 0.2s;
+}
+
+button.c-blue {
+    background-color: dodgerblue;
+    border-color: dodgerblue;
+    color: white;
+}
+
+button.c-blue:hover, button.c-blue.disabled{
+    background-color: #0050a0;
+    border-color: #0050a0;
+    transition: 0.2s;
+}
+button.c-red {
+    background-color: var(--red);
+    border-color: var(--red);
+    color: white;
+}
+
+button.c-red:hover, button.c-red.disabled{
+    background-color: rgb(170, 36, 36);
+    border-color: rgb(170, 36, 36);
+    transition: 0.2s;
+}
+
+button.c-gray {
+    background-color: #2b2b2b;
+    border-color: #2b2b2b;
+    color: white;
+}
+
+button.c-gray:hover, button.c-gray.disabled{
+    background-color: darkslategray;
+    border-color: darkslategray;
+    transition: 0.2s;
+}
+button.c-light-gray {
+    background-color: #616161;
+    border-color: #616161;
+    color: white;
+}
+
+button.c-light-gray:hover, button.c-gray.disabled{
+    background-color: #444444;
+    border-color: #444444;
+    transition: 0.2s;
+}
+button.c-transparent{
+    background-color: transparent;
+}
+
+
+button.size-large{
+    height: 40px;
+    border-radius: 0.7em;
+}
+button.size-medium{
+    height: 32px;
+    border-radius: 0.6em;
+}
+button.size-small{
+    font-size: small;
+    height: 25px;
+    border-radius: 0.7em;
 }

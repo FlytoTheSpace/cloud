@@ -60,7 +60,7 @@ const UI = {
             }
         }
         const request = await fetch(`${webURL}/cloud/files/${userId}`, options)
-        if (!request.ok) { return UI.showError("Unable to Load Files") }
+        if (!request.ok) { return UI.showError((await request.json()).status) }
         $('#directoryInputBar').value = path
         $('#directoryInputBar').dataset.path = path
         
@@ -190,6 +190,7 @@ const UI = {
                     action: 'open'
                 } : {
                     "Content-Type": "application/json",
+                    
                     action: 'open'
                 },
                 body: JSON.stringify({
@@ -197,7 +198,7 @@ const UI = {
                 })
             }
             const request = await fetch(`${webURL}/cloud/files/actions/${userId}`, options)
-            if (!request.ok) { return UI.showError("Unable to Open The File") }
+            if (!request.ok) { return UI.showError((await request.json()).status) }
 
             const File = await request.blob()
 
@@ -206,7 +207,7 @@ const UI = {
         }
     },
     showError: function (msg) {
-        alert(msg)
+        displaybanner(Banners.error, msg)
     },
     preview: function (fileURL) {
         const previewWindow = $('#previewWindow');
@@ -362,7 +363,7 @@ const Action = {
                     })
                 }
                 const request = await fetch(`${webURL}/cloud/files/actions/${userId}`, options)
-                if (!request.ok) { return UI.showError("Unable to Move your Files!") }
+                if (!request.ok) { return UI.showError((await request.json()).status) }
 
                 const reponse = await request.json()
             })
@@ -439,8 +440,8 @@ const Action = {
         }
         const userID = getUserID()
         const request = await fetch(`${webURL}/cloud/files/actions/${userID}`, options)
-        if (!request.ok) { return UI.showError("Unable to Create The File") }
-        const reponse = await request.json()
+        if (!request.ok) { return UI.showError((await request.json()).status) }
+        await request.json()
 
         await UI.loadFiles($('#directoryInputBar').dataset.path)
     },
@@ -459,7 +460,7 @@ const Action = {
         }
         const userID = getUserID()
         const request = await fetch(`${webURL}/cloud/files/actions/${userID}`, options)
-        if (!request.ok) { return UI.showError("Unable to Create The Folder") }
+        if (!request.ok) { return UI.showError((await request.json()).status) }
         const reponse = await request.json()
 
         await UI.loadFiles($('#directoryInputBar').dataset.path)

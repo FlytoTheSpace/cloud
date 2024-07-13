@@ -18,7 +18,14 @@ export async function pathExists(path) {
     }
 }
 export async function getFiles(userID, directory) {
-    const files = (await fs.readdir(path.join(config.databasePath, `${userID}/`, directory.sanitizePath())));
+    const inputPath = path.join(config.databasePath, `${userID}/`, directory.sanitizePath());
+    if (!(await pathExists(inputPath))) {
+        return "Path Doesn't Exist";
+    }
+    if (!inputPath.includes(config.databasePath)) {
+        return "Path Escapes!";
+    }
+    const files = (await fs.readdir(inputPath));
     const filesObject = [];
     for (let i = 0; i < files.length; i++) {
         const filePath = path.join(directory, files[i]).replace(/\\/g, '/');

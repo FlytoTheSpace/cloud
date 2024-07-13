@@ -18,6 +18,7 @@ import multer from 'multer'
 import { exec, execSync } from 'child_process';
 const router = express.Router()
 import env from '../assets/env.js'
+import { stringify } from 'querystring'
 
 router.use(bodyParser.urlencoded({ extended: true }));
 router.use(cookieParser());
@@ -222,11 +223,19 @@ router.get('/cloud/files/:userid', Authentication.tokenAPI, async (req, res) => 
     const directory: string = ((req.headers.path ? req.headers.path : '/').toString()).sanitizePath()
 
     try {
-        // Checking if the Directory Exists or Not
-        if (!await pathExists(path.join(config.databasePath, `/${userID}/`))) { await fs.mkdir(path.join(config.databasePath, `/${userID}/`)) }
+        // Checking if the User Data Directory Exists or Not
+        if (!await pathExists(path.join(config.databasePath, `/${userID}/`))) {
+            await fs.mkdir(path.join(config.databasePath, `/${userID}/`))
+        }
+        if(!await pathExists(path.join(config.databasePath, `/${userID}/`, directory))){ return res.status(400).json(resStatusPayload("path doesn't exist!")) }
 
-        const filesObject: FileObject[] = await getFiles(userID, directory)
-        res.status(200).json(filesObject)
+        // The String Returned by the `getFiles` Function is an Error which is meant to be passed to the Client Side
+        const files: FileObject[] | string = await getFiles(userID, directory)
+        if(typeof files === 'string'){
+            return res.status(400).json(resStatusPayload(files))
+        }
+
+        res.status(200).json(files)
     } catch (error) {
         return res.status(500).json(resStatusPayload("something went wrong!"))
     }
@@ -281,7 +290,7 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
             // Copying It
             try {
                 execSync(`cp -r "${fromCompletePath}" "${destinationCompletePath}"`)
-                res.status(200).json({ 'status': `successfully copied File/Folder!`, 'success': false })
+                res.status(200).json({ 'status': `successfully copied File/Folder!`, 'success': true })
             } catch {
                 res.status(400).json(resStatusPayload("Unable to Copy Files!"))
             }
@@ -308,7 +317,7 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
             try {
                 await fs.rename(fromCompletePath, destinationCompletePath)
 
-                res.status(200).json({ 'status': 'successfully Moved Your File(s)!', 'success': false })
+                res.status(200).json({ 'status': 'successfully Moved Your File(s)!', 'success': true })
             } catch {
                 return res.status(406).json(resStatusPayload("Unable to Move Your Files!"))
             }
@@ -332,7 +341,7 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
                 await fs.rm(completePath, { force: true, recursive: true })
             }
 
-            res.status(200).json({ 'status': `successfully deleted The ${PathType}!`, 'success': false })
+            res.status(200).json({ 'status': `successfully deleted The ${PathType}!`, 'success': true })
         } else if (action === 'create-file') {
             // Sanitization
             if (!req.body.path) { return res.status(406).json(resStatusPayload("Path must be Provided")) }
@@ -351,7 +360,7 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
 
             fs.writeFile(path.join(completePath, name), data)
 
-            res.status(200).json({ 'status': `successfully created The File!`, 'success': false })
+            res.status(200).json({ 'status': `successfully created The File!`, 'success': true })
         } else if (action === 'create-folder') {
             // Sanitization
             if (!req.body.path) { return res.status(406).json(resStatusPayload("Path must be Provided")) }
@@ -369,7 +378,7 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
 
             fs.mkdir(path.join(completePath, name))
 
-            res.status(200).json({ 'status': `successfully created The File!`, 'success': false })
+            res.status(200).json({ 'status': `successfully created The File!`, 'success': true })
         }
     } catch (error) {
         console.log(logPrefix("Cloud"), error)

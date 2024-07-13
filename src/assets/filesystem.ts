@@ -27,8 +27,13 @@ export async function pathExists(path: string): Promise<boolean> {
         }
     }
 }
-export async function getFiles(userID: number, directory: string): Promise<FileObject[]> {
-    const files: string[] = (await fs.readdir(path.join(config.databasePath, `${userID}/`, directory.sanitizePath())))
+export async function getFiles(userID: number, directory: string): Promise<FileObject[] | string> {
+
+    const inputPath = path.join(config.databasePath, `${userID}/`, directory.sanitizePath())
+    if(!(await pathExists(inputPath))){ return "Path Doesn't Exist"}
+    if(!inputPath.includes(config.databasePath)){ return "Path Escapes!"}
+
+    const files: string[] = (await fs.readdir(inputPath))
 
     const filesObject: FileObject[] = []
 

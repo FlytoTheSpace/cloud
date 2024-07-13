@@ -24,6 +24,7 @@ import config from './assets/config.js';
 // Routers
 import pagesRouter from './routes/pages.js' 
 import APIRouter from './routes/api.js'
+import UI from './assets/ui.js';
 
 const app = express()
 const PORT: number = env.PORT? parseInt(env.PORT) : 8080;
@@ -37,6 +38,9 @@ app.use(express.json())
 
 app.use('/', pagesRouter)
 app.use('/', APIRouter)
+app.use(function(req, res){
+    res.status(404).send(UI.errorMSG(`404 - Not Found ${req.url}`))
+})
 app.listen(PORT, ()=>{
     const link = `http://${ipv4}:${PORT}`
     console.log(logPrefix('Server'), `Server Started on ${link}`)
