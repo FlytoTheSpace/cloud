@@ -8,11 +8,17 @@ export type Actions = 'open' | 'copy' | 'cut' | 'delete'
 export type FileSystemTypes = 'file' | 'directory' | 'unknown'
 export type validFileSystemTypes = 'file' | 'directory'
 
+export interface MetaData {
+    size: number
+    'createdOn': Date
+}
+
 export interface FileObject {
-    [input: string]: string
+    [input: string]: string | MetaData
     name: string,
     path: string,
-    type: 'file' | 'directory' | 'unknown'
+    type: 'file' | 'directory' | 'unknown',
+    metadata: MetaData
 }
 
 export async function pathExists(path: string): Promise<boolean> {
@@ -41,11 +47,15 @@ export async function getFiles(userID: number, directory: string): Promise<FileO
 
         const filePath: string = path.join(directory, files[i]).replace(/\\/g, '/')
         const type: FileSystemTypes = await checkPathType(path.join(config.databasePath, `${userID}/`, filePath));
-
+        const metadata: Stats = await fs.lstat(path.join(config.databasePath, `${userID}/`, filePath))
         const fileObject: FileObject = {
             'name': files[i],
             'path': filePath,
-            'type': type
+            'type': type,
+            'metadata': {
+                'size': metadata.size,
+                'createdOn': metadata.birthtime
+            }
         }
         filesObject[i] = fileObject;
     }

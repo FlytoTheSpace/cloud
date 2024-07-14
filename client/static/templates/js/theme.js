@@ -37,8 +37,8 @@ document.getElementsByTagName('head')[0].insertAdjacentElement('beforeend', them
 
 window.addEventListener('DOMContentLoaded', ()=>{
     (Array.from(document.querySelectorAll('img[src]')))
-        .filter(img=>img.src.includes(theme.main) && !(img.dataset.const))
-        .map(img=>{
-            img.src = img.src.replace(theme.main, theme.icon)
-        })
+    .filter(img=>img.src.includes(theme.main) && !(img.dataset.const))
+    .map(img=>{
+        img.src = img.src.replace(theme.main, theme.icon)
+    })
 })

@@ -30,10 +30,15 @@ export async function getFiles(userID, directory) {
     for (let i = 0; i < files.length; i++) {
         const filePath = path.join(directory, files[i]).replace(/\\/g, '/');
         const type = await checkPathType(path.join(config.databasePath, `${userID}/`, filePath));
+        const metadata = await fs.lstat(path.join(config.databasePath, `${userID}/`, filePath));
         const fileObject = {
             'name': files[i],
             'path': filePath,
-            'type': type
+            'type': type,
+            'metadata': {
+                'size': metadata.size,
+                'createdOn': metadata.birthtime
+            }
         };
         filesObject[i] = fileObject;
     }

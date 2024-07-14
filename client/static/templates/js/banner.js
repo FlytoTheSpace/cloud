@@ -1,13 +1,13 @@
 `<div class="banner c-green withIcon"> <img src="/assets/images/icons/light/done.svg"> Success: </div>
 <div class="banner c-red withIcon"> <img src="/assets/images/icons/light/error_outline.svg"> Error: Stack Overflow </div>
 <div class="banner c-yellow withIcon"> <img src="/assets/images/icons/dark/warning_outline.svg" data-const="true"> Warning: Something Might Happen! </div>
-<div class="banner c-blue withIcon"> <img src="/assets/images/icons/light/error_outline.svg"> Info: Test </div>`
+<div class="banner c-blue withIcon"> <img src="/assets/images/icons/light/info.svg"> Info: Test </div>`
 
 const Banners = {
     success: msg=>`<div class="banner c-green withIcon"> <img src="/assets/images/icons/light/done.svg"> Success: ${msg} </div>`,
     error: msg=>`<div class="banner c-red withIcon"> <img src="/assets/images/icons/light/error_outline.svg"> Error: ${msg} </div>`,
     warning: msg=>`<div class="banner c-yellow withIcon"> <img src="/assets/images/icons/dark/warning_outline.svg" data-const="true"> Warning: ${msg} </div>`,
-    info: msg=>`<div class="banner c-blue withIcon"> <img src="/assets/images/icons/light/error_outline.svg"> Info: ${msg} </div>`,
+    info: msg=>`<div class="banner c-blue withIcon"> <img src="/assets/images/icons/light/info.svg"> Info: ${msg} </div>`,
 }
 const killbyID = (UUID)=>{
     const Element = $(`#${UUID}`)

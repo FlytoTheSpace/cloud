@@ -1,0 +1,10 @@
+
+div.contextMenu{
+    background: var(--secondary-background);
+    width: 175px;
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    z-index: 10;
+    border: 2px solid var(--bold-background)
+}

@@ -1,3 +1,4 @@
+
 // SETTINGS: DON'T CHANGE THESE IF ACCESSING VIA BROWSER
 let GUI = true
 const webURL = ''
@@ -112,6 +113,10 @@ const UI = {
                     file.style.background = 'var(--bold-background)'
                 }
             })
+
+            fileElement.addEventListener('contextmenu', (event)=>{
+                showContextMenu(event, 'fileContextMenu')
+            })
         })
         if (loadSelected) {
             Array.from(fileElements).forEach(fileElement => {
@@ -173,7 +178,7 @@ const UI = {
             document.body.removeChild(link)
         }
 
-        if (fails.length > 0) { UI.showError(`Unable to download ${fails.length} Files`) }
+        if (fails.length > 0) { UI.showError(`Unable to download ${fails.length} Files ${fails}`) }
 
     },
     open: async function (dataset) {
@@ -418,7 +423,7 @@ const Action = {
             const reponse = await request.json()
         }
 
-        if (fails.length > 0) { UI.showError(`Unable to delete ${fails.length} Files`) }
+        if (fails.length > 0) { UI.showError(`Unable to delete ${fails.length} Files ${fails}`) }
 
 
         $('#filesection').innerHTML = ''
@@ -467,8 +472,37 @@ const Action = {
     }
 }
 
+const contextMenuConfig = (event, action)=>{
+    const fileElements = $("#filesection > .file[data-selected='true']", true)
+
+    const paths = fileElements.map(({ dataset }) => dataset.path)
+
+    console.log(action)
+    if (action === 'open') { UI.open(fileElements[0].dataset) }
+    else if (action === 'copy') { Action.copy() }
+    else if (action === 'cut') { Action.cut() }
+    else if (action === 'paste') { Action.paste() }
+    else if (action === 'download') {
+        const types = fileElements.map(({ dataset }) => dataset.type)
+        UI.download(paths, types)
+    }
+    else if (action === 'delete') { Action.deletes(...paths) }
+    else if (action === 'back') { UI.back() }
+    else {
+        UI.showError("Action has not been defined yet, Sorry for your Inconvinience")
+    }
+    
+}
+
 // Event Listeners
 if (GUI) {
+    const directoryInputBar = $('#directoryInputBar')
+    directoryInputBar.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            UI.loadFiles(event.target.value)
+        }
+    })
+
     UI.loadFiles('/') // Loading All The Files/Folders
 
     // Upload
@@ -476,7 +510,6 @@ if (GUI) {
     const uploadBtn = $('#uploadBtn')
     const uploadOpenWindowBtn = $('#uploadWindowOpenBtn')
     const uploadWindowBackground = $('#uploadWindowBackground')
-
     uploadBtn.addEventListener('click', async () => {
 
         const files = $('#uploadInput').files
@@ -529,6 +562,8 @@ if (GUI) {
         uploadInputLabel.textContent = fileNames;
     });
 
+
+
     const actionBtns = Array.from($('.actionBtn', true))
     actionBtns.forEach(actionBtn => {
         actionBtn.addEventListener('click', ({ target }) => {
@@ -557,24 +592,36 @@ if (GUI) {
         })
     })
 
+
+
     window.addEventListener('keydown', (event) => {
-        const fileElements = Array.from($("#filesection > .file[data-selected='true']", true))
-        if (fileElements.length < 1) { return null }
 
-        if (event.key === 'Delete') {
-            // Deleting Every one of them
-            fileElements.forEach((fileElement) => {
-                deletes(fileElement.dataset);
-            })
+        if (event.ctrlKey && event.key === 'v') {
+            Action.paste(directoryInputBar.dataset.path);
+        }
+        if (event.ctrlKey && event.key === 'ArrowLeft') {
+            UI.back();
+        }
+
+        const fileElements = $("#filesection > .file[data-selected='true']", true)
+        if (fileElements.length < 1) { return null };
+        
+        if (event.ctrlKey && event.key === 'c') {
+            Action.copy(...fileElements.map(fileElement=>fileElement.dataset.path));
+        } else if (event.ctrlKey && event.key === 'x') {
+            Action.cut(...fileElements.map(fileElement=>fileElement.dataset.path));
+        } else if (event.key === 'Delete') {
+            Action.deletes(...fileElements.map(fileElement=>fileElement.dataset.path));
         }
     })
-    const directoryInputBar = $('#directoryInputBar')
-    directoryInputBar.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-            UI.loadFiles(event.target.value)
+
+
+
+    $('#filesection').addEventListener('contextmenu', (event)=>{
+        if(event.target.id === 'filesection'){
+            showContextMenu(event, 'explorerContextMenu')
         }
     })
-
     $('#createFile').addEventListener('click', ()=>{
         const filesection = $('#filesection')
         filesection.insertAdjacentHTML('beforeend', `
