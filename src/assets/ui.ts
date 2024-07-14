@@ -12,7 +12,7 @@ const UI = {
 
         if (ErrorLinks[msg]){
             for(let i = 0; i<ErrorLinks[msg].length; i++){
-                HTMLinput += `<button class="t-1 c-blue " onclick="location.href = '${ErrorLinks[msg][i][0]}'">${ErrorLinks[msg][i][1]}</button>`
+                HTMLinput += `<button class="fill size-medium c-blue " onclick="location.href = '${ErrorLinks[msg][i][0]}'">${ErrorLinks[msg][i][1]}</button>`
             }
         }
 
