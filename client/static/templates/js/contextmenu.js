@@ -22,10 +22,8 @@ const loadContextMenu = async () => {
 
         for(let i = 0; i<fileContextMenuButtons.length; i++){
             fileContextMenuButtons[i].addEventListener('click', (event)=>{
-                console.log("Clicked")
 
                 if(contextMenuConfig !== undefined && contextMenuConfig !== null){
-                    console.log("CONFIG FOUND!")
                     contextMenuConfig(event, fileContextMenuButtons[i].dataset.action)
                 }
             })
@@ -34,10 +32,8 @@ const loadContextMenu = async () => {
 
         for(let i = 0; i<explorerContextMenuButtons.length; i++){
             explorerContextMenuButtons[i].addEventListener('click', (event)=>{
-                console.log("Clicked")
 
                 if(contextMenuConfig !== undefined && contextMenuConfig !== null){
-                    console.log("CONFIG FOUND!")
                     contextMenuConfig(event, explorerContextMenuButtons[i].dataset.action)
                 }
             })
@@ -64,4 +60,3 @@ function showContextMenu(event, menu) {
 
 
 loadContextMenu();
-console.log("END")

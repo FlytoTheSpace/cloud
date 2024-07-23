@@ -6,7 +6,6 @@ function UUID() {
     let ID = `UUID-${Math.floor(Math.random() * (maxID - minID + 1)) + minID}${new Date().getMilliseconds()}`;
     return ID
 }
-console.log(UUID())
 
 const loadDefaultNavbar = async () => {
     const navbar = await fetch(`/templates/html/navbar.html`)
@@ -57,35 +56,53 @@ const loadDefaultNavbar = async () => {
 const loadCSS = async () => {
     const CSS = await fetch(`/templates/html/css.html`)
     if (!CSS.ok) {
-        console.error("Unable to Load CSS")
-    } else {
-        const CSSdata = await CSS.text()
-
-        let hostElement = document.getElementsByTagName('head')[0]
-
-        hostElement.insertAdjacentHTML('beforeend', CSSdata)
+        return console.error("Unable to Load CSS")
     }
+    const CSSdata = await CSS.text()
+
+    let hostElement = document.getElementsByTagName('head')[0]
+
+    hostElement.insertAdjacentHTML('beforeend', CSSdata)
+
+}
+const banner = () => {
+    const script = document.createElement('script')
+    script.src = `/templates/js/banner.js`
+    document.body.insertAdjacentElement('beforeend', script)
 }
 const loadDefault = async () => {
     await loadCSS()
     await loadDefaultNavbar();
+    banner();
     const info = await fetch('/get/account/info')
-    if(!info.ok){
+    if (!info.ok) {
         alert("Unable to verify your login")
     }
     const userInfo = await info.json()
-
     console.log(userInfo)
 
-    if(!userInfo.loggedIn){
+    if (userInfo.loggedIn && userInfo.admin) {
+        const [_, _1, navbarlink2] = $('.nav-item');
+        navbarlink2.onclick = '';
+        navbarlink2.addEventListener('click', async () => {
+            const URLreq = await fetch('/get/admin-dashboard-url');
+            if (!URLreq.ok) { return alert((await URLreq.json()).status)}
+            const URL = (await URLreq.json()).data
+            console.log(URL)
+            location.href = `${URL}`
+        });
+        navbarlink2.innerHTML = "Admin Dashboard";
+    }
+    if (!userInfo.loggedIn) {
         const [_, navbarlink1, navbarlink2] = $('.nav-item');
         navbarlink1.onclick = '';
         navbarlink2.onclick = '';
-        navbarlink1.addEventListener('click', ()=>{location.href = '/login'});
-        navbarlink2.addEventListener('click', ()=>{location.href = '/register'});
+        navbarlink1.addEventListener('click', () => { location.href = '/login' });
+        navbarlink2.addEventListener('click', () => { location.href = '/register' });
         navbarlink1.innerHTML = "Login";
         navbarlink2.innerHTML = "Register";
+
     };
 }
 loadDefault()
-    
+

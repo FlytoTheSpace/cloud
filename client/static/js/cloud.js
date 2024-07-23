@@ -160,7 +160,6 @@ const UI = {
 
             if (!request.ok) { fails.push([request.status, paths[i], (await request.clone().json()).status]); continue }
 
-            console.log(await (request.clone()).json().status)
             const File = await request.blob()
 
             const fileURL = URL.createObjectURL(File)
@@ -170,7 +169,6 @@ const UI = {
             document.body.appendChild(link)
 
             const name = paths[i].replace(/[\\]+/g, '/').sanitizePath().split('/').at(-1)
-            console.log(name)
 
             link.download = name
 
@@ -477,7 +475,6 @@ const contextMenuConfig = (event, action)=>{
 
     const paths = fileElements.map(({ dataset }) => dataset.path)
 
-    console.log(action)
     if (action === 'open') { UI.open(fileElements[0].dataset) }
     else if (action === 'copy') { Action.copy() }
     else if (action === 'cut') { Action.cut() }
@@ -643,7 +640,6 @@ if (GUI) {
                 Action.createFile(path, (pendingFileCreation.textContent).sanitizePath(), '')
                 
                 UI.loadFiles($('#directoryInputBar').dataset.path)
-                console.log("Reloaded")
             }
         }
     })
@@ -663,13 +659,11 @@ if (GUI) {
         pendingFolderCreation.focus()
         pendingFolderCreation.onkeydown = function({key}){
             if(key === 'Enter'){
-                console.log("Enter!")
                 const path = $('#directoryInputBar').dataset.path
 
                 Action.createFolder(path, (pendingFolderCreation.textContent).sanitizePath())
                 
                 UI.loadFiles($('#directoryInputBar').dataset.path)
-                console.log("Reloaded")
             }
         }
     })
