@@ -52,7 +52,6 @@ main {
         min-height: 70vh;
     }
     #sidebar {
-        background: var(--secondary-background);
         position: fixed;
         display: flex;
         justify-content: center;

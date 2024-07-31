@@ -47,10 +47,10 @@ const UI = {
     loadFiles: async function (inputPath, loadSelected = false) {
         const filesSection = $('#filesection', false)
         filesSection.innerHTML = ''
-        
+
         const path = inputPath === '' ? '/' : (inputPath.sanitizePath().endsWith('/') ? inputPath.sanitizePath() : inputPath.sanitizePath() + '/')
-        
-        
+
+
         const options = {
             method: 'GET',
             headers: (TOKEN) ? {
@@ -64,17 +64,17 @@ const UI = {
         if (!request.ok) { return UI.showError((await request.json()).status) }
         $('#directoryInputBar').value = path
         $('#directoryInputBar').dataset.path = path
-        
+
         const ReponseObject = await request.json()
-        
+
         if (ReponseObject.length < 1) {
             filesSection.innerHTML = 'No Files Found'
             return null;
         }
-        
+
         filesSection.innerHTML = ''
         ReponseObject.forEach(fileObject => {
-            
+
             const filename = fileObject.name;
             const filepath = fileObject.path;
             const type = fileObject.type;
@@ -94,7 +94,7 @@ const UI = {
         Array.from(fileElements).forEach(fileElement => {
             fileElement.addEventListener('click', (event) => {
                 const file = event.target.closest('.file')
-                if (file.dataset.selected === 'true' && file.dataset.timeout === 'true') {
+                if (file.dataset.timeout === 'true') {
                     // On Double Click on Files/Directory
                     file.dataset.timeout === false
                     UI.open(file.dataset)
@@ -114,7 +114,7 @@ const UI = {
                 }
             })
 
-            fileElement.addEventListener('contextmenu', (event)=>{
+            fileElement.addEventListener('contextmenu', (event) => {
                 showContextMenu(event, 'fileContextMenu')
             })
         })
@@ -181,33 +181,33 @@ const UI = {
     },
     open: async function (dataset) {
         if (dataset.type === 'directory') {
-            UI.loadFiles(dataset.path)
-        } else if (dataset.type === 'file') {
-
-
-            const options = {
-                method: 'POST',
-                headers: (TOKEN) ? {
-                    Authorization: TOKEN,
-                    "Content-Type": 'application/json',
-                    action: 'open'
-                } : {
-                    "Content-Type": "application/json",
-                    
-                    action: 'open'
-                },
-                body: JSON.stringify({
-                    path: dataset.path,
-                })
-            }
-            const request = await fetch(`${webURL}/cloud/files/actions/${userId}`, options)
-            if (!request.ok) { return UI.showError((await request.json()).status) }
-
-            const File = await request.blob()
-
-            const fileURL = URL.createObjectURL(File)
-            UI.preview(fileURL)
+            return UI.loadFiles(dataset.path)
         }
+
+        const options = {
+            method: 'POST',
+            headers: (TOKEN) ? {
+                Authorization: TOKEN,
+                "Content-Type": 'application/json',
+                action: 'open'
+            } : {
+                "Content-Type": "application/json",
+
+                action: 'open'
+            },
+            body: JSON.stringify({
+                path: dataset.path,
+            })
+        }
+        const ID = displaybanner(Banners.info, "Opening...", -1)
+        const request = await fetch(`${webURL}/cloud/files/actions/${userId}`, options)
+        if (!request.ok) { return UI.showError((await request.json()).status) }
+        
+        const File = await request.blob()
+        
+        const fileURL = URL.createObjectURL(File)
+        killbyID(ID)
+        UI.preview(fileURL)
     },
     showError: function (msg) {
         displaybanner(Banners.error, msg)
@@ -470,7 +470,7 @@ const Action = {
     }
 }
 
-const contextMenuConfig = (event, action)=>{
+const contextMenuConfig = (event, action) => {
     const fileElements = $("#filesection > .file[data-selected='true']", true)
 
     const paths = fileElements.map(({ dataset }) => dataset.path)
@@ -488,7 +488,7 @@ const contextMenuConfig = (event, action)=>{
     else {
         UI.showError("Action has not been defined yet, Sorry for your Inconvinience")
     }
-    
+
 }
 
 // Event Listeners
@@ -602,48 +602,48 @@ if (GUI) {
 
         const fileElements = $("#filesection > .file[data-selected='true']", true)
         if (fileElements.length < 1) { return null };
-        
+
         if (event.ctrlKey && event.key === 'c') {
-            Action.copy(...fileElements.map(fileElement=>fileElement.dataset.path));
+            Action.copy(...fileElements.map(fileElement => fileElement.dataset.path));
         } else if (event.ctrlKey && event.key === 'x') {
-            Action.cut(...fileElements.map(fileElement=>fileElement.dataset.path));
+            Action.cut(...fileElements.map(fileElement => fileElement.dataset.path));
         } else if (event.key === 'Delete') {
-            Action.deletes(...fileElements.map(fileElement=>fileElement.dataset.path));
+            Action.deletes(...fileElements.map(fileElement => fileElement.dataset.path));
         }
     })
 
 
 
-    $('#filesection').addEventListener('contextmenu', (event)=>{
-        if(event.target.id === 'filesection'){
+    $('#filesection').addEventListener('contextmenu', (event) => {
+        if (event.target.id === 'filesection') {
             showContextMenu(event, 'explorerContextMenu')
         }
     })
-    $('#createFile').addEventListener('click', ()=>{
+    $('#createFile').addEventListener('click', () => {
         const filesection = $('#filesection')
         filesection.insertAdjacentHTML('beforeend', `
             
             <div class="file" data-path="" data-type="" data-name="" data-selected='false' data-timeout="false">
                 <div class="icon">
-                    <img src="${UI.getIcon('file','')}" alt="">
+                    <img src="${UI.getIcon('file', '')}" alt="">
                 </div>
                 <div class="name pendingFileCreation" contentEditable='true'>New File</div>
             </div>`
 
-            )
+        )
         const pendingFileCreation = $('.pendingFileCreation')[0]
         pendingFileCreation.focus()
-        pendingFileCreation.onkeydown = function({key}){
-            if(key === 'Enter'){
+        pendingFileCreation.onkeydown = function ({ key }) {
+            if (key === 'Enter') {
                 const path = $('#directoryInputBar').dataset.path
 
                 Action.createFile(path, (pendingFileCreation.textContent).sanitizePath(), '')
-                
+
                 UI.loadFiles($('#directoryInputBar').dataset.path)
             }
         }
     })
-    $('#createFolder').addEventListener('click', ()=>{
+    $('#createFolder').addEventListener('click', () => {
         const filesection = $('#filesection')
         filesection.insertAdjacentHTML('beforeend', `
             
@@ -654,15 +654,15 @@ if (GUI) {
                 <div class="name pendingFolderCreation" contentEditable='true'>New Folder</div>
             </div>`
 
-            )
+        )
         const pendingFolderCreation = $('.pendingFolderCreation')[0]
         pendingFolderCreation.focus()
-        pendingFolderCreation.onkeydown = function({key}){
-            if(key === 'Enter'){
+        pendingFolderCreation.onkeydown = function ({ key }) {
+            if (key === 'Enter') {
                 const path = $('#directoryInputBar').dataset.path
 
                 Action.createFolder(path, (pendingFolderCreation.textContent).sanitizePath())
-                
+
                 UI.loadFiles($('#directoryInputBar').dataset.path)
             }
         }

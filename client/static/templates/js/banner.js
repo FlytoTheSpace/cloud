@@ -1,7 +1,3 @@
-`<div class="banner c-green withIcon"> <img src="/assets/images/icons/light/done.svg"> Success: </div>
-<div class="banner c-red withIcon"> <img src="/assets/images/icons/light/error_outline.svg"> Error: Stack Overflow </div>
-<div class="banner c-yellow withIcon"> <img src="/assets/images/icons/dark/warning_outline.svg" data-const="true"> Warning: Something Might Happen! </div>
-<div class="banner c-blue withIcon"> <img src="/assets/images/icons/light/info.svg"> Info: Test </div>`
 
 const Banners = {
     success: msg=>`<div class="banner c-green withIcon"> <img src="/assets/images/icons/light/done.svg"> Success: ${msg} </div>`,
@@ -30,6 +26,7 @@ const displaybanner = (banner, msg, timeout=5)=>{
         killbyID(ID)
         kill = false
     })
+    if(timeout<0){return ID}
 
     setTimeout(()=>{
         if(!kill){ return null;}

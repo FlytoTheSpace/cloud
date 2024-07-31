@@ -5,17 +5,17 @@ button{
 /* Styles */
 button.fill{
     min-width: 100px;
-    padding: 0.2vh 1.5vw;
+    padding: 1px 15px;
     font-size: 1.2em;
     cursor: pointer;
     transition: 0.2s;
-    border-radius: 0.5em;
+    border-radius: 0.3em;
     border: solid 2px;
 }
 
 button.outline{
     min-width: 100px;
-    padding: 0.2vh 1.5vw;
+    padding: 1px 15px;
     font-size: 1.2em;
     cursor: pointer;
     transition: 0.2s;
@@ -140,14 +140,14 @@ button.c-gray:hover, button.c-gray.disabled{
     transition: 0.2s;
 }
 button.c-light-gray {
-    background-color: #616161;
-    border-color: #616161;
+    background-color: #bbb;
+    border-color: #bbb;
     color: white;
 }
 
 button.c-light-gray:hover, button.c-gray.disabled{
-    background-color: #444444;
-    border-color: #444444;
+    background-color: #616161;
+    border-color: #616161;
     transition: 0.2s;
 }
 button.c-transparent{
@@ -157,14 +157,11 @@ button.c-transparent{
 
 button.size-large{
     height: 40px;
-    border-radius: 0.7em;
 }
 button.size-medium{
     height: 32px;
-    border-radius: 0.6em;
 }
 button.size-small{
     font-size: small;
     height: 25px;
-    border-radius: 0.7em;
 }
