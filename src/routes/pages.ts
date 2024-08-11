@@ -58,7 +58,11 @@ router.get('/get/admin-dashboard-url', Authentication.tokenAdminAPI, (req, res)=
     res.status(200).send({data: `/${env.ADMIN_PAGE_URL}`})
 })
 router.get(`/${env.ADMIN_PAGE_URL}`, Authentication.tokenAdmin, (req, res)=>{
-    res.sendFile(path.join(ROOT, `client/page/admin.html`))
+    const page: string | undefined = req.query.page as string | undefined
+
+    if(page === undefined || page === 'home'){
+        res.sendFile(path.join(ROOT, `client/page/admin_home.html`))
+    }
 })
 
 export default router

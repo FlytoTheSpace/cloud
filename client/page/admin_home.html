@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin</title>
+    <script src="/templates/js/default.js" defer></script>
+    <script src="/templates/js/theme.js"></script>
+    <link rel="stylesheet" href="/css/cloud.css">
+</head>
+
+<body>
+    <header></header>
+    <main>
+        <div id="sidebar" data-hidden="false" data-dockbelow="false">
+            <ul></ul>
+            <p>User Management</p>
+            <ul></ul>
+            <p>Data</p>
+            <ul></ul>
+        </div>
+        <div id="mainContainer">
+            <button class="circle primary c-transparent withIcon" id="hideSideBar"><img
+                    src="/assets/images/icons/dark/menu.svg" alt="menu"></button>
+        </div>
+    </main>
+    <footer></footer>
+    <script>
+        const sideBarButtons = [
+            {
+                name: "Main",
+                redirect: "?page=home",
+                icon: `${theme.colorICO ? 'color' : theme.icon}/home.svg`
+            },
+            {
+                name: "Console",
+                redirect: "?page=console",
+                icon: `${theme.colorICO ? 'color' : theme.icon}/terminal.svg`
+            }
+        ]
+        const sideBarButtonsUser = [
+            {
+                name: "Users",
+                redirect: "?page=users",
+                icon: `${theme.colorICO ? 'color' : theme.icon}/users.svg`
+            },
+            {
+                name: "Group",
+                redirect: "?page=group",
+                icon: `${theme.colorICO ? 'color' : theme.icon}/users.svg`
+            },
+        ]
+        const sideBarButtonsData = [
+            {
+                name: "Database",
+                redirect: "?page=database",
+                icon: `${theme.colorICO ? 'color' : theme.icon}/database.svg`
+            },
+            {
+                name: "Storage",
+                redirect: "?page=storage",
+                icon: `${theme.colorICO ? 'color' : theme.icon}/server.svg`
+            },
+            {
+                name: "MongoDB",
+                redirect: "?page=mongodb",
+                icon: `${theme.colorICO ? 'color' : theme.icon}/server.svg`
+            },
+        ];
+
+        const sidebar = document.getElementById('sidebar');
+
+        for (let i = 0; i < sideBarButtons.length; i++) {
+            sidebar.children[0].insertAdjacentHTML('beforeend', `
+                <li onclick="location.href = '${sideBarButtons[i].redirect}'">
+                    <img src="/assets/images/icons/${sideBarButtons[i].icon}" alt="">
+                    <p class="sidebarLinkText">${sideBarButtons[i].name}</p>
+                </li>
+            `)
+        }
+        for (let i = 0; i < sideBarButtonsUser.length; i++) {
+            sidebar.children[2].insertAdjacentHTML('beforeend', `
+                <li onclick="location.href = '${sideBarButtonsUser[i].redirect}'">
+                    <img src="/assets/images/icons/${sideBarButtonsUser[i].icon}" alt="">
+                    <p class="sidebarLinkText">${sideBarButtonsUser[i].name}</p>
+                </li>
+            `)
+        }
+        for (let i = 0; i < sideBarButtonsData.length; i++) {
+            sidebar.children[4].insertAdjacentHTML('beforeend', `
+                <li onclick="location.href = '${sideBarButtonsData[i].redirect}'">
+                    <img src="/assets/images/icons/${sideBarButtonsData[i].icon}" alt="">
+                    <p class="sidebarLinkText">${sideBarButtonsData[i].name}</p>
+                </li>
+            `)
+        }
+
+        const hideSideBar = document.getElementById('hideSideBar');
+        const mainContainer = document.getElementById('mainContainer');
+        const sidebarParagraph = Array.from(document.querySelectorAll('#sidebar p'))
+
+        const seconds = 0.3; // Animation Speed (Seconds)
+
+        if (hideSideBar) {
+            hideSideBar.addEventListener('click', () => {
+                const hidden = sidebar.dataset.hidden === 'true' ? true : false;
+                if (hidden) {
+                    sidebar.dataset.hidden = 'false';
+                    sidebar.style.visibility = 'hidden'
+                    sidebar.style.animation = `sidebar-slide-in ${seconds}s ease-in`
+                    mainContainer.style.animation = 'mainContainer-min 0.3s ease-in'
+                    setTimeout(() => {
+                        for (let i = 0; i < sidebarParagraph.length; i++) {
+                            sidebarParagraph[i].style.visibility = 'visible'
+                        }
+                    }, (seconds * (3 / 4)) * 1000)
+                    setTimeout(() => {
+                        sidebar.style.display = 'flex'
+                        sidebar.style.visibility = 'visible'
+                        mainContainer.style.width = '100%'
+                    }, seconds * 1000)
+                    return null
+                };
+
+                sidebar.dataset.hidden = 'true'
+                sidebar.style.animation = `sidebar-slide-out ${seconds}s ease-in`
+                mainContainer.style.animation = `mainContainer-max ${seconds}s ease-in`
+                setTimeout(() => {
+                    for (let i = 0; i < sidebarParagraph.length; i++) {
+                        sidebarParagraph[i].style.visibility = 'hidden'
+                    }
+                }, (seconds * (1 / 2)) * 1000)
+                setTimeout(() => {
+                    sidebar.style.display = 'none'
+                }, seconds * 1000)
+                return null;
+            })
+        }
+
+
+    </script>
+</body>
+
+</html>

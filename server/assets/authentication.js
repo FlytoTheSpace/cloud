@@ -32,11 +32,8 @@ export const Authentication = {
             if (!decodedToken) {
                 return res.status(401).send(Authentication.tools.resErrorPayload("Invalid Token", API));
             }
-            if (!API && Authentication.isSessionTokenValid(req)) {
-                if (adminOnly && decodedToken.role !== 'admin') {
-                    return res.status(401).send(Authentication.tools.resErrorPayload("Only Administrators are Allowed!", API));
-                }
-                ;
+            // Must Continue with Normal Authentication If AdminOnly because, sessionToken Auth can cause Buggy Behavior If The Account is Deleted on The Database
+            if (!adminOnly && Authentication.isSessionTokenValid(req)) {
                 return next();
             }
             // Finding The User in the Database

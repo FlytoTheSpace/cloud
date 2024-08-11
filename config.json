@@ -1,7 +1,7 @@
 {
-    "devMode": false,
+    "devMode": true,
     "databaseDir": "$ROOT/database",
-    "firstrun": true,
+    "firstrun": false,
     "namesizelimit": 255,
     "browserOnRun": true
 }
