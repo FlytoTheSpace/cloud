@@ -3,54 +3,104 @@ import { Accounts } from './database.js';
 import UI from './ui.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { access } from 'fs';
 import logPrefix from './log.js';
 import env from './env.js';
 export const defaultRole = 'member';
+// type Handshake = {
+//     headers: {
+//         [key: string]: string
+//         connection: string,
+//         host: string,
+//         'user-agent': string,
+//         accept: string,
+//         'accept-language': string,
+//         'accept-encoding': string,
+//         dnt: string,
+//         'sec-gpc': string,
+//         referer: string,
+//         cookie: string
+//     },
+//     time: string,
+//     address: string,
+//     xdomain: false,
+//     secure: false,
+//     issued: number,
+//     url: string,
+//     query: {
+//         EIO: string,
+//         transport: string,
+//         t: string
+//     },
+//     auth: {}
+//     cookies?: {
+//         [key: string]: string | string[] | undefined
+//     }
+// }
+function getCookie(cookie, inputKey) {
+    if (typeof cookie !== 'string') {
+        return null;
+    }
+    const cookies = cookie.replace(/ /g, '').split(';');
+    for (let i = 0; i < cookies.length; i++) {
+        const [key, value] = decodeURIComponent(cookies[i]).split('=');
+        if (key === inputKey) {
+            return value;
+        }
+        ;
+    }
+    ;
+    return null;
+}
+;
 const sessionTokenExpiration = 30; // Time before the Session Token Expires (in Minutes)
+/**
+*
+* @param msg string
+* @param API API or Not?
+*/
+export function resErrorPayload(msg, API = false) {
+    return API ? { 'status': msg, 'success': false } : UI.errorMSG(msg);
+}
 export const Authentication = {
     // Functions inside "tools" property are untilities that are used Inside other Functions in this Object
-    tools: {
-        /**
-         *
-         * @param msg string
-         * @param API API or Not?
-         */
-        resErrorPayload: (msg, API = false) => {
-            return API ? { 'status': msg, 'success': false } : UI.errorMSG(msg);
-        }
-    },
+    tools: {},
     // Main Function for Authentication
-    main: async (req, res, next, API, adminOnly) => {
+    main: async (req, res, next, options) => {
         try {
-            // Verifying Token is Valid
-            if (!req.cookies.token && !req.headers.authorization) {
-                return res.status(401).send(Authentication.tools.resErrorPayload("Account Required", API));
+            function send(status, msg) {
+                return (options.returnBool || !res) ? false : res.status(status).send(resErrorPayload(msg, options.API));
             }
-            const token = req.cookies.token.toString() || req.headers.authorization?.toString();
-            const decodedToken = Accounts.token.validate(token);
-            if (!decodedToken) {
-                return res.status(401).send(Authentication.tools.resErrorPayload("Invalid Token", API));
+            // Verifying Token is Valid
+            if (!req.headers.cookie && !req.headers.authorization) {
+                return send(401, "Account Required");
+            }
+            const token = (getCookie(req.headers.cookie, 'token') || req.headers.authorization?.toString());
+            if (!token) {
+                return send(401, "Invalid Token");
             }
             // Must Continue with Normal Authentication If AdminOnly because, sessionToken Auth can cause Buggy Behavior If The Account is Deleted on The Database
-            if (!adminOnly && Authentication.isSessionTokenValid(req)) {
-                return next();
+            if (!options.adminOnly && Authentication.isSessionTokenValid(req)) {
+                return (options.returnBool || !res) ? true : next();
+            }
+            const decodedToken = Accounts.token.validate(token);
+            if (!decodedToken) {
+                return send(401, "Invalid Token");
             }
             // Finding The User in the Database
             const matchedAccount = await Accounts.findAccountOne.email(decodedToken.email);
             if (!matchedAccount) {
-                return res.status(404).send(Authentication.tools.resErrorPayload("Invalid Token", API));
+                return send(404, "Invalid Token, Account Doesn't Exist");
             }
             // Checking Password
             const isPasswordMatch = crypto.timingSafeEqual(Buffer.from(decodedToken.password), Buffer.from(matchedAccount.password));
             if (!isPasswordMatch) {
-                return res.status(401).send(Authentication.tools.resErrorPayload("Invalid Token", API));
+                return send(401, "Invalid Token");
             }
-            if (!API) {
-                // Assigning the User a Session Token if not an API
+            if (!options.API && !options.returnBool && res) {
+                // Assigning the User a Session Token if not an API and Not returnBool since it will be used in Web Sockets for Auth
                 const sessionTokenPayload = {
                     'token': token,
-                    'ip': (req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0] : req.ip),
+                    'ip': (req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0] : (req.ip || req.address)),
                     'creation': Date.now()
                 };
                 const expiration = new Date();
@@ -63,30 +113,35 @@ export const Authentication = {
                     sameSite: 'strict'
                 });
             }
-            if (adminOnly && matchedAccount.role !== 'admin') {
-                return res.status(401).send(Authentication.tools.resErrorPayload("Only Administrators are Allowed!", API));
+            if (options.adminOnly && matchedAccount.role !== 'admin') {
+                return send(401, "Admin Only!");
             }
-            return next(); // Authentication Passed! (Admin Mode)
+            return (options.returnBool || !res) ? true : next(); // Authentication Passed! (Admin Mode)
         }
         catch (error) {
-            console.log(logPrefix("Error"), error);
-            return res.status(500).send(Authentication.tools.resErrorPayload("internal server error!", API));
+            console.error(logPrefix("Error"), error);
+            return (options.returnBool || !res) ? false : res.status(500).send(resErrorPayload("internal server error!", options.API));
         }
     },
     isSessionTokenValid: (req) => {
         try {
             // Checking if Session Token or Token is Missing
-            if (!req.cookies.sessionToken || !req.cookies.token) {
+            if (!req.headers.cookie) {
                 return false;
             }
             // Token Verification
-            const token = req.cookies.token.toString();
+            const token = getCookie(req.headers.cookie, 'token');
+            if (!token) {
+                return false;
+            }
             const decodedToken = Accounts.token.validate(token);
             if (!decodedToken) {
                 return false;
             }
-            // Session Token Verification
-            const sessionToken = req.cookies.sessionToken.toString();
+            const sessionToken = getCookie(req.headers.cookie, 'sessionToken');
+            if (!sessionToken) {
+                return false;
+            }
             const decodedSessionToken = Accounts.sessionToken.validate(sessionToken);
             if (!decodedSessionToken) {
                 return false;
@@ -94,7 +149,7 @@ export const Authentication = {
             if ((Date.now() - decodedSessionToken.creation) / 1000 > sessionTokenExpiration * 60) {
                 return false;
             }
-            const ipAddress = req.ip;
+            const ipAddress = req.ip || req.address;
             if (!ipAddress) {
                 return false;
             }
@@ -113,7 +168,7 @@ export const Authentication = {
             return true;
         }
         catch (error) {
-            console.log(logPrefix("Error"), error);
+            console.error(logPrefix("Error"), error);
             return false;
         }
     },
@@ -165,7 +220,7 @@ export const Authentication = {
             return response;
         }
         catch (error) {
-            console.log(logPrefix("Error"), error);
+            console.error(logPrefix("Error"), error);
             return response;
         }
     },
@@ -206,16 +261,16 @@ export const Authentication = {
             return info;
         }
         catch (error) {
-            console.log(logPrefix("Error"), error);
+            console.error(logPrefix("Error"), error);
             return info;
         }
     },
     // Middlewares
     // for Normal Users:
-    token: async (req, res, next) => await Authentication.main(req, res, next, false, false),
-    tokenAPI: async (req, res, next) => await Authentication.main(req, res, next, true, false),
+    token: async (req, res, next) => await Authentication.main(req, res, next, { API: false, adminOnly: false }),
+    tokenAPI: async (req, res, next) => await Authentication.main(req, res, next, { API: true, adminOnly: false }),
     // for Administrators:
-    tokenAdmin: async (req, res, next) => await Authentication.main(req, res, next, false, true),
-    tokenAdminAPI: async (req, res, next) => await Authentication.main(req, res, next, true, true),
+    tokenAdmin: async (req, res, next) => await Authentication.main(req, res, next, { API: false, adminOnly: true }),
+    tokenAdminAPI: async (req, res, next) => await Authentication.main(req, res, next, { API: true, adminOnly: true }),
 };
 export default Authentication;

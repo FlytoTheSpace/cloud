@@ -19,6 +19,7 @@ import { exec, execSync } from 'child_process';
 const router = express.Router();
 import env from '../assets/env.js';
 import { stringify } from 'querystring';
+import ROOT from '../assets/root.js';
 router.use(bodyParser.urlencoded({ extended: true }));
 router.use(cookieParser());
 router.use(express.json());
@@ -31,7 +32,7 @@ const RootdirRegex = /[\*\?\"\<\>\|]+/g;
  * @returns {'status': string, 'success': boolean}
  * @example res.json(resStatusPayload("Account doesn't exist", false))
  */
-function resStatusPayload(status, success = false) {
+export function resStatusPayload(status, success = false) {
     return { 'status': status, 'success': success };
 }
 String.prototype.sanitizePath = function (fromROOT) {
@@ -428,6 +429,28 @@ router.get('/u/info/userid', Authentication.tokenAPI, (req, res) => {
     catch (error) {
         console.log(logPrefix("API"), error);
         res.status(500).send(resStatusPayload('internal server error!'));
+    }
+});
+router.get('/get/admin-dashboard-url', Authentication.tokenAdminAPI, (req, res) => {
+    res.status(200).send({ data: `/${env.ADMIN_PAGE_URL}` });
+});
+router.post(`/${env.ADMIN_PAGE_URL}`, Authentication.tokenAdminAPI, (req, res) => {
+    const page = req.query.page;
+    if (!page) {
+        return res.status(404).json(resStatusPayload("Unknown Page for Action"));
+    }
+    if (!req.headers.action) {
+        return res.status(405).json(resStatusPayload("Unknown Action"));
+    }
+    ;
+    const action = req.headers.action.toString();
+    switch (page) {
+        case 'console':
+            return res.status(200).json();
+            break;
+        default:
+            return res.status(404).json(resStatusPayload("Unknown Page for Action"));
+            break;
     }
 });
 // Custom Middlwares

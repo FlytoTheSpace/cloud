@@ -66,7 +66,7 @@ export const Accounts = {
         try{
             await AccountsModel.findOneAndUpdate(filter, updatedValue);
         } catch (error){
-            console.log(logPrefix("Error"), "Unable to Find/Update The Specified User")
+            console.error(logPrefix("Error"), "Unable to Find/Update The Specified User")
         }
     },
     register: async (userData: accountInterface): Promise<void> => {

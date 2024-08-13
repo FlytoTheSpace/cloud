@@ -12,7 +12,8 @@ interface configFileInterface {
     'databaseDir': string,
     'namesizelimit': number,
     'firstrun': boolean,
-    'browserOnRun': boolean
+    'browserOnRun': boolean,
+    'sessionTokenExpiration': number
 }
 // Defaults
 const defaultconfigFile:configFileInterface = {
@@ -20,7 +21,8 @@ const defaultconfigFile:configFileInterface = {
     'databaseDir': "$ROOT/database",
     'namesizelimit': 255,
     'firstrun': false,
-    'browserOnRun': true
+    'browserOnRun': true,
+    'sessionTokenExpiration': 30
 }
 
 let serverConfig: configFileInterface
@@ -58,16 +60,16 @@ async function changeConfig (key: string, value: string | number | boolean){
 
         await fs.writeFile(path.join(ROOT, 'config.json'), JSON.stringify(serverConfig, null, 4))
     } catch(error){
-        console.log(logPrefix("Error"), (error as Error).message)
+        console.error(logPrefix("Error"), (error as Error).message)
     }
 }
 
-// 
 const databasePath: string = (serverConfig.databaseDir.startsWith("$ROOT"))? path.join(ROOT, serverConfig.databaseDir.replace('$ROOT', '')) : ( serverConfig.databaseDir);
 
 // Checking if the Directory Exists
 
 if (!(await directoryExists(databasePath))){
-    throw new Error("Database Directory doesn't exists... , please create it")
+    console.error(logPrefix('Error'), "Database Directory doesn't exists, please create it")
+    process.exit(1)
 }
 export default {serverConfig, databasePath, changeConfig};

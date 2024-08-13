@@ -7,6 +7,7 @@ import Authentication from '../assets/authentication.js';
 import jwt from 'jsonwebtoken';
 import logPrefix from '../assets/log.js';
 import env from '../assets/env.js';
+import UI from '../assets/ui.js';
 const files = await fs.readdir(path.join(ROOT, 'client/routes'), 'utf-8');
 const routeFiles = files.filter(value => value.endsWith('.html'));
 const routeFileURL = routeFiles.map(value => value.slice(0, value.length - 5).toLowerCase().replace(/[^a-z]/g, '-'));
@@ -61,13 +62,18 @@ for (let i = 0; i < routeFiles.length; i++) {
 router.get('/cloud/u/', Authentication.token, (req, res) => {
     res.sendFile(path.join(ROOT, 'client/page/cloud_interface.html'));
 });
-router.get('/get/admin-dashboard-url', Authentication.tokenAdminAPI, (req, res) => {
-    res.status(200).send({ data: `/${env.ADMIN_PAGE_URL}` });
-});
 router.get(`/${env.ADMIN_PAGE_URL}`, Authentication.tokenAdmin, (req, res) => {
     const page = req.query.page;
     if (page === undefined || page === 'home') {
-        res.sendFile(path.join(ROOT, `client/page/admin_home.html`));
+        return res.status(200).sendFile(path.join(ROOT, `client/page/admin_home.html`));
+    }
+    switch (page) {
+        case 'console':
+            return res.status(200).sendFile(path.join(ROOT, `client/page/admin_console.html`));
+            break;
+        default:
+            return res.status(404).send(UI.errorMSG(`404 - Not Found ${req.url}`));
+            break;
     }
 });
 export default router;
