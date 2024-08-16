@@ -4,5 +4,9 @@
     "firstrun": true,
     "namesizelimit": 255,
     "browserOnRun": true,
-    "sessionTokenExpiration": 30
+    "sessionTokenExpiration": 30,
+    "features": {
+        "console": false,
+        "redis": false
+    }
 }

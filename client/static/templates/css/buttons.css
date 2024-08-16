@@ -80,7 +80,7 @@ button.fullspan {
 }
 button.withIcon {
     display: inline-flex;
-    justify-content: center;
+    justify-content: space-around;
     align-items: center;
 }
 button.withIcon img{
@@ -144,10 +144,19 @@ button.c-light-gray {
     border-color: #bbb;
     color: white;
 }
-
-button.c-light-gray:hover, button.c-gray.disabled{
+button.c-light-gray:hover, button.c-light-gray.disabled{
     background-color: #616161;
     border-color: #616161;
+    transition: 0.2s;
+}
+button.c-bold {
+    background-color: var(--bold-background);
+    border-color: var(--bold-background);
+    color: white;
+}
+button.c-bold:hover, button.c-bold.disabled{
+    background-color: var(--secondary-background);
+    border-color: var(--bold-background);
     transition: 0.2s;
 }
 button.c-transparent{

@@ -9,6 +9,22 @@
     <script src="/templates/js/theme.js"></script>
     <link rel="stylesheet" href="/css/cloud.css">
     <!-- <script src="/assets/js/socket.io.js"></script> -->
+    <style>
+        #mainContainer{
+            display: flex;
+            flex-direction: column;
+        }
+        #mainContainer > header{
+            display: flex;
+            align-items: center;
+        }
+        #console{
+            margin: 10px;
+            height: calc(100% - 20px);
+            width: calc(100% - 20px);
+            background: var(--main-background);
+        }
+    </style>
 </head>
 
 <body>
@@ -22,9 +38,12 @@
             <ul></ul>
         </div>
         <div id="mainContainer">
-            <button class="circle primary c-transparent withIcon" id="hideSideBar"><img
-                    src="/assets/images/icons/dark/menu.svg" alt="menu"></button>
-            <button class="fill c-blue size-medium" id="send">SEND</button>
+            <header>
+                <button class="circle primary c-transparent withIcon" id="hideSideBar"><img src="/assets/images/icons/dark/menu.svg" alt="menu"></button>
+                <input type="text" name="CLIinput" id="CLIinput" class="t-1">
+                <button class="fill c-bold size-medium withIcon" id="send"><img src="/assets/images/icons/color/play.svg" alt="">Run</button>
+            </header>
+            <code id="console"></code>
         </div>
     </main>
     <footer></footer>
@@ -146,21 +165,23 @@
         const socket = io('/', {
             closeOnBeforeunload: true
         })
-        const PATH = location.pathname.slice().replace('/', '')
-        console.log(PATH)
-        socket.emit("join", PATH)
+        const consoleElement = document.getElementById('console');
+        const sendBtn = document.getElementById('send');
         
         socket.on('error', (message)=>{
-            console.log(message)
+            const data = message.data.formatted
+            const rendered = `<span style="color: red">${data.join('<br>')}</span><br>`
+            consoleElement.innerHTML += rendered
         })
         socket.on('response', (message)=>{
-            console.log(message)
+            const data = message.data.formatted
+            consoleElement.innerHTML += data.join('<br>')
         })
-        const sendBtn = document.getElementById('send');
         sendBtn.addEventListener('click', ()=>{
-            const MSG = prompt('MSG to Send:')
-
-            socket.emit('command', MSG)
+            const CLIinput = document.getElementById('CLIinput');
+            const command = CLIinput.value;
+            CLIinput.value = '';
+            socket.emit('command', command)
         })
 
     </script>

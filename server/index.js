@@ -7,7 +7,7 @@ import logPrefix from './assets/log.js';
 import { Accounts } from './assets/database.js';
 import config from './assets/config.js';
 // Routers
-import server from './server.js';
+import server from './routes/server.js';
 import './routes/socket.js';
 const PORT = env.PORT ? parseInt(env.PORT) : 8080;
 // Middlewares

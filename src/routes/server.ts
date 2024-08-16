@@ -3,10 +3,10 @@ import express from "express";
 import { createServer } from "http";
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
-import pagesRouter from "./routes/pages.js";
-import APIRouter from "./routes/api.js";
-import ROOT from "./assets/root.js";
-import UI from './assets/ui.js';
+import pagesRouter from "./pages.js";
+import APIRouter from "./api.js";
+import ROOT from "../assets/root.js";
+import UI from '../assets/ui.js';
 import path from 'path';
 
 const app = express()

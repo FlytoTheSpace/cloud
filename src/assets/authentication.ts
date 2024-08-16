@@ -14,36 +14,6 @@ export interface SessionTokenPayload {
     ip: string,
     creation: number
 }
-// type Handshake = {
-//     headers: {
-//         [key: string]: string
-//         connection: string,
-//         host: string,
-//         'user-agent': string,
-//         accept: string,
-//         'accept-language': string,
-//         'accept-encoding': string,
-//         dnt: string,
-//         'sec-gpc': string,
-//         referer: string,
-//         cookie: string
-//     },
-//     time: string,
-//     address: string,
-//     xdomain: false,
-//     secure: false,
-//     issued: number,
-//     url: string,
-//     query: {
-//         EIO: string,
-//         transport: string,
-//         t: string
-//     },
-//     auth: {}
-//     cookies?: {
-//         [key: string]: string | string[] | undefined
-//     }
-// }
 
 function getCookie<T>(cookie: T, inputKey: string): string | null{
     if(typeof cookie !== 'string'){ return null }

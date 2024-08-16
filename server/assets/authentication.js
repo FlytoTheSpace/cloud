@@ -6,36 +6,6 @@ import crypto from 'crypto';
 import logPrefix from './log.js';
 import env from './env.js';
 export const defaultRole = 'member';
-// type Handshake = {
-//     headers: {
-//         [key: string]: string
-//         connection: string,
-//         host: string,
-//         'user-agent': string,
-//         accept: string,
-//         'accept-language': string,
-//         'accept-encoding': string,
-//         dnt: string,
-//         'sec-gpc': string,
-//         referer: string,
-//         cookie: string
-//     },
-//     time: string,
-//     address: string,
-//     xdomain: false,
-//     secure: false,
-//     issued: number,
-//     url: string,
-//     query: {
-//         EIO: string,
-//         transport: string,
-//         t: string
-//     },
-//     auth: {}
-//     cookies?: {
-//         [key: string]: string | string[] | undefined
-//     }
-// }
 function getCookie(cookie, inputKey) {
     if (typeof cookie !== 'string') {
         return null;
