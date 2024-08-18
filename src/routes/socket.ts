@@ -8,6 +8,7 @@ import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import ROOT from '../assets/root.js';
 import { error } from 'console';
 import Worker from 'worker_threads'
+import config from '../assets/config.js';
 
 type Response = {
     status: string,
@@ -50,23 +51,10 @@ io.on('connection', (socket) => {
             } as Response)
         }
     })
-    socket.on('command', async (CMD: any) => {
-        try {
-            // Authentication
-            const isAuthorized: boolean = (await Authentication.main(socket.handshake, null, () => { }, {
-                adminOnly: true,
-                returnBool: true
-            }) as boolean)
-            if (!isAuthorized) { throw new Error("Not Authorized") }
-
-
-            // main logic
-            const Commands: string[] = (CMD.toString('utf-8') as string).split(' ')
-            if (!Commands.length) { throw new Error("Invalid Commands Length") }
-            const [exe, ...args] = Commands
-
-            const adminConsoleProcess: ChildProcessWithoutNullStreams = args.length ? spawn(exe, args, { cwd: ROOT }) : spawn(exe, { cwd: ROOT });
-            adminConsoleProcess.on('error', async (err) => {
+    if (config.serverConfig.features.console) {
+        socket.on('command', async (CMD: any) => {
+            try {
+                // Authentication
                 const isAuthorized: boolean = (await Authentication.main(socket.handshake, null, () => { }, {
                     adminOnly: true,
                     returnBool: true
@@ -74,65 +62,79 @@ io.on('connection', (socket) => {
                 if (!isAuthorized) { throw new Error("Not Authorized") }
 
 
+                // main logic
+                const Commands: string[] = (CMD.toString('utf-8') as string).split(' ')
+                if (!Commands.length) { throw new Error("Invalid Commands Length") }
+                const [exe, ...args] = Commands
+
+                const adminConsoleProcess: ChildProcessWithoutNullStreams = args.length ? spawn(exe, args, { cwd: ROOT }) : spawn(exe, { cwd: ROOT });
+                adminConsoleProcess.on('error', async (err) => {
+                    const isAuthorized: boolean = (await Authentication.main(socket.handshake, null, () => { }, {
+                        adminOnly: true,
+                        returnBool: true
+                    }) as boolean)
+                    if (!isAuthorized) { throw new Error("Not Authorized") }
+
+
+                    socket.emit(events.error, {
+                        status: "process stderr data",
+                        success: true,
+                        data: {
+                            bin: err,
+                            formatted: err.toString().split('\n')
+                        },
+                        meta: {
+                            event: events.command,
+                        }
+                    } as Response)
+                })
+                adminConsoleProcess.stdout.on('data', async (bytes) => {
+                    const isAuthorized: boolean = (await Authentication.main(socket.handshake, null, () => { }, {
+                        adminOnly: true,
+                        returnBool: true
+                    }) as boolean)
+                    if (!isAuthorized) { throw new Error("Not Authorized") }
+                    socket.emit(events.response, {
+                        status: 'process stdout data',
+                        success: true,
+                        data: {
+                            bin: Array.from(bytes),
+                            formatted: bytes.toString('utf-8').split('\n')
+                        },
+                        meta: {
+                            event: events.command,
+                        }
+                    } as Response)
+                })
+                socket.on('kill', async () => {
+                    const isAuthorized: boolean = (await Authentication.main(socket.handshake, null, () => { }, {
+                        adminOnly: true,
+                        returnBool: true
+                    }) as boolean)
+                    if (!isAuthorized) { throw new Error("Not Authorized") }
+
+
+                    adminConsoleProcess.kill()
+                    socket.emit(events.response, {
+                        status: 'process stdout data',
+                        success: true,
+                        data: null,
+                        meta: {
+                            event: events.command,
+                        }
+                    } as Response)
+                })
+
+            } catch (error) {
                 socket.emit(events.error, {
-                    status: "process stderr data",
-                    success: true,
-                    data: {
-                        bin: err,
-                        formatted: err.toString().split('\n')
-                    },
-                    meta: {
-                        event: events.command,
-                    }
-                } as Response)
-            })
-            adminConsoleProcess.stdout.on('data', async (bytes) => {
-                const isAuthorized: boolean = (await Authentication.main(socket.handshake, null, () => { }, {
-                    adminOnly: true,
-                    returnBool: true
-                }) as boolean)
-                if (!isAuthorized) { throw new Error("Not Authorized") }
-                socket.emit(events.response, {
-                    status: 'process stdout data',
-                    success: true,
-                    data: {
-                        bin: Array.from(bytes),
-                        formatted: bytes.toString('utf-8').split('\n')
-                    },
-                    meta: {
-                        event: events.command,
-                    }
-                } as Response)
-            })
-            socket.on('kill', async () => {
-                const isAuthorized: boolean = (await Authentication.main(socket.handshake, null, () => { }, {
-                    adminOnly: true,
-                    returnBool: true
-                }) as boolean)
-                if (!isAuthorized) { throw new Error("Not Authorized") }
-
-
-                adminConsoleProcess.kill()
-                socket.emit(events.response, {
-                    status: 'process stdout data',
-                    success: true,
+                    status: ((error as Error).message),
+                    success: false,
                     data: null,
                     meta: {
-                        event: events.command,
+                        event: events.error,
                     }
                 } as Response)
-            })
-
-        } catch (error) {
-            socket.emit(events.error, {
-                status: ((error as Error).message),
-                success: false,
-                data: null,
-                meta: {
-                    event: events.error,
-                }
-            } as Response)
-        }
-    })
-
+            }
+        })
+    }
 })
