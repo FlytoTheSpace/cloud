@@ -228,11 +228,11 @@ router.get('/cloud/files/:userid', Authentication.tokenAPI, async (req, res) => 
         if (!await pathExists(path.join(config.databasePath, `/${userID}/`))) {
             await fs.mkdir(path.join(config.databasePath, `/${userID}/`))
         }
-        if(!await pathExists(path.join(config.databasePath, `/${userID}/`, directory))){ return res.status(400).json(resStatusPayload("path doesn't exist!")) }
+        if (!await pathExists(path.join(config.databasePath, `/${userID}/`, directory))) { return res.status(400).json(resStatusPayload("path doesn't exist!")) }
 
         // The String Returned by the `getFiles` Function is an Error which is meant to be passed to the Client Side
         const files: FileObject[] | string = await getFiles(userID, directory)
-        if(typeof files === 'string'){
+        if (typeof files === 'string') {
             return res.status(400).json(resStatusPayload(files))
         }
 
@@ -267,8 +267,8 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
             const completePath = path.join(config.databasePath, `/${userID}/`, directory)
             if (!completePath.includes(config.databasePath)) { return res.status(405).json(resStatusPayload("Not Allowed!")) }
             if (await checkPathType(completePath) !== 'file') { return res.status(406).json(resStatusPayload("Path must lead to a File!")) }
-            if (await isSymlinkAndBreaks(completePath)){ return res.status(405).json(resStatusPayload("Not Allowed!")) }
-
+            if (await isSymlinkAndBreaks(completePath)) { return res.status(405).json(resStatusPayload("Not Allowed!")) }
+            const start = Date.now()
             res.status(200).sendFile(completePath)
         } else if (action === 'copy') {
             // Sanitization
@@ -397,18 +397,18 @@ router.get('/u/info/userid', Authentication.tokenAPI, (req, res) => {
         res.status(500).send(resStatusPayload('internal server error!'))
     }
 })
-router.get('/get/admin-dashboard-url', Authentication.tokenAdminAPI, (req, res)=>{
-    res.status(200).send({data: `/${env.ADMIN_PAGE_URL}`})
+router.get('/get/admin-dashboard-url', Authentication.tokenAdminAPI, (req, res) => {
+    res.status(200).send({ data: `/${env.ADMIN_PAGE_URL}` })
 })
-router.post(`/${env.ADMIN_PAGE_URL}`, Authentication.tokenAdminAPI, (req, res)=>{
+router.post(`/${env.ADMIN_PAGE_URL}`, Authentication.tokenAdminAPI, (req, res) => {
     const page: string | undefined = req.query.page as string | undefined
-    
-    if(!page){ return res.status(404).json(resStatusPayload("Unknown Page for Action")) }
-    if(!req.headers.action){ return res.status(405).json(resStatusPayload("Unknown Action"))};
+
+    if (!page) { return res.status(404).json(resStatusPayload("Unknown Page for Action")) }
+    if (!req.headers.action) { return res.status(405).json(resStatusPayload("Unknown Action")) };
 
     const action = req.headers.action.toString();
 
-    switch (page){
+    switch (page) {
         case 'console':
             return res.status(200).json()
             break;
@@ -438,7 +438,7 @@ async function isSymlinkAndBreaks(symlinkPath: string) {
         const stats = await fs.lstat(symlinkPath);
         if (!stats.isSymbolicLink()) { return false }
         const link = path.resolve(await fs.readlink(symlinkPath))
-        if(link.includes(config.databasePath)){ return false}
+        if (link.includes(config.databasePath)) { return false }
         return true
     } catch (error) {
         console.log(error);

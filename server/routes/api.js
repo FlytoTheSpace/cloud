@@ -275,6 +275,7 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
             if (await isSymlinkAndBreaks(completePath)) {
                 return res.status(405).json(resStatusPayload("Not Allowed!"));
             }
+            const start = Date.now();
             res.status(200).sendFile(completePath);
         }
         else if (action === 'copy') {
