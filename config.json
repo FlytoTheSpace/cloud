@@ -3,5 +3,10 @@
     "databaseDir": "$ROOT/database",
     "firstrun": true,
     "namesizelimit": 255,
-    "browserOnRun": true
+    "browserOnRun": true,
+    "sessionTokenExpiration": 30,
+    "features": {
+        "console": false,
+        "redis": false
+    }
 }

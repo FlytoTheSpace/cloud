@@ -128,6 +128,7 @@ const UI = {
         if (!paths) { return null }
 
         const fails = []
+        const ID = displaybanner(Banners.info, `Downloading ${paths.slice(0, 5)}...`, -1)
         for (let i = 0; i < paths.length; i++) {
 
             try {
@@ -139,8 +140,7 @@ const UI = {
                 }
             }
 
-
-
+            const start = Date.now()
             const options = {
                 method: 'POST',
                 headers: (TOKEN) ? {
@@ -155,12 +155,29 @@ const UI = {
                     path: paths[i]
                 })
             }
+            const headersSet = Date.now()
 
             const request = await fetch(`${webURL}/cloud/files/actions/${userId}`, options)
-
+            
             if (!request.ok) { fails.push([request.status, paths[i], (await request.clone().json()).status]); continue }
 
-            const File = await request.blob()
+            const reader = request.body.getReader();
+            const stream = new ReadableStream({
+                start(controller) {
+                    function push() {
+                        reader.read().then(({ done, value }) => {
+                            if (done) { controller.close(); return; }
+                            controller.enqueue(value);
+                            push();
+                        });
+                    }
+                    push();
+                }
+            });
+
+            const downloadedData = new Response(stream);
+            const File = await downloadedData.blob();
+            const end = Date.now()
 
             const fileURL = URL.createObjectURL(File)
 
@@ -168,14 +185,16 @@ const UI = {
             link.href = fileURL;
             document.body.appendChild(link)
 
-            const name = paths[i].replace(/[\\]+/g, '/').sanitizePath().split('/').at(-1)
+            const name = paths[i].sanitizePath().split('/').at(-1)
 
             link.download = name
 
+
             link.click()
             document.body.removeChild(link)
+            const triggeredDownload = Date.now()
         }
-
+        killbyID(ID)
         if (fails.length > 0) { UI.showError(`Unable to download ${fails.length} Files ${fails}`) }
 
     },
@@ -202,9 +221,9 @@ const UI = {
         const ID = displaybanner(Banners.info, "Opening...", -1)
         const request = await fetch(`${webURL}/cloud/files/actions/${userId}`, options)
         if (!request.ok) { return UI.showError((await request.json()).status) }
-        
+
         const File = await request.blob()
-        
+
         const fileURL = URL.createObjectURL(File)
         killbyID(ID)
         UI.preview(fileURL)
@@ -306,7 +325,7 @@ const Action = {
         const selectedFiles = (GUI && paths.length < 1) ?
             Array.from($("#filesection > .file[data-selected='true']", true)) :
             paths.map(path => {
-                const constPath = path.replace(/[\\]+/g, '/').sanitizePath();
+                const constPath = path.sanitizePath();
                 return { dataset: { name: constPath.split('/').at(-1), path: constPath } }
             })
 

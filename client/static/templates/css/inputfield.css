@@ -1,0 +1,11 @@
+
+input[type="text"].t-1 {
+    background: var(--main-background);
+    border: var(--bold-background);
+    height: 32px;
+    border-radius: 1px;
+    color: var(--text);
+    font-size: medium;
+    margin: 4px 2px;
+    padding: 0 5px;
+}

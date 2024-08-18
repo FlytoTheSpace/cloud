@@ -18,19 +18,20 @@ export async function pathExists(path) {
     }
 }
 export async function getFiles(userID, directory) {
-    const inputPath = path.join(config.databasePath, `${userID}/`, directory.sanitizePath());
+    const homeDirectory = path.join(config.databasePath, `/${userID}/`);
+    const inputPath = path.join(homeDirectory, directory.sanitizePath());
     if (!(await pathExists(inputPath))) {
         return "Path Doesn't Exist";
     }
-    if (!inputPath.includes(config.databasePath)) {
+    if (!inputPath.includes(homeDirectory)) {
         return "Path Escapes!";
     }
     const files = (await fs.readdir(inputPath));
     const filesObject = [];
     for (let i = 0; i < files.length; i++) {
         const filePath = path.join(directory, files[i]).replace(/\\/g, '/');
-        const type = await checkPathType(path.join(config.databasePath, `${userID}/`, filePath));
-        const metadata = await fs.lstat(path.join(config.databasePath, `${userID}/`, filePath));
+        const type = await checkPathType(path.join(homeDirectory, filePath));
+        const metadata = await fs.lstat(path.join(homeDirectory, filePath));
         const fileObject = {
             'name': files[i],
             'path': filePath,

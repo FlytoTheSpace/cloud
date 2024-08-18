@@ -79,7 +79,6 @@ const loadDefault = async () => {
         alert("Unable to verify your login")
     }
     const userInfo = await info.json()
-    console.log(userInfo)
 
     if (userInfo.loggedIn && userInfo.admin) {
         const [_, _1, navbarlink2] = $('.nav-item');
@@ -88,7 +87,6 @@ const loadDefault = async () => {
             const URLreq = await fetch('/get/admin-dashboard-url');
             if (!URLreq.ok) { return alert((await URLreq.json()).status)}
             const URL = (await URLreq.json()).data
-            console.log(URL)
             location.href = `${URL}`
         });
         navbarlink2.innerHTML = "Admin Dashboard";
