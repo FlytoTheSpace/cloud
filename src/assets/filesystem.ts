@@ -34,10 +34,10 @@ export async function pathExists(path: string): Promise<boolean> {
     }
 }
 export async function getFiles(userID: number, directory: string): Promise<FileObject[] | string> {
-
-    const inputPath = path.join(config.databasePath, `${userID}/`, directory.sanitizePath())
+    const homeDirectory = path.join(config.databasePath, `/${userID}/`)
+    const inputPath = path.join(homeDirectory, directory.sanitizePath())
     if(!(await pathExists(inputPath))){ return "Path Doesn't Exist"}
-    if(!inputPath.includes(config.databasePath)){ return "Path Escapes!"}
+    if(!inputPath.includes(homeDirectory)){ return "Path Escapes!"}
 
     const files: string[] = (await fs.readdir(inputPath))
 
@@ -46,8 +46,8 @@ export async function getFiles(userID: number, directory: string): Promise<FileO
     for (let i = 0; i < files.length; i++) {
 
         const filePath: string = path.join(directory, files[i]).replace(/\\/g, '/')
-        const type: FileSystemTypes = await checkPathType(path.join(config.databasePath, `${userID}/`, filePath));
-        const metadata: Stats = await fs.lstat(path.join(config.databasePath, `${userID}/`, filePath))
+        const type: FileSystemTypes = await checkPathType(path.join(homeDirectory, filePath));
+        const metadata: Stats = await fs.lstat(path.join(homeDirectory, filePath))
         const fileObject: FileObject = {
             'name': files[i],
             'path': filePath,

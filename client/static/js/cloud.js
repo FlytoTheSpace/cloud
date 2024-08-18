@@ -185,7 +185,7 @@ const UI = {
             link.href = fileURL;
             document.body.appendChild(link)
 
-            const name = paths[i].replace(/[\\]+/g, '/').sanitizePath().split('/').at(-1)
+            const name = paths[i].sanitizePath().split('/').at(-1)
 
             link.download = name
 
@@ -325,7 +325,7 @@ const Action = {
         const selectedFiles = (GUI && paths.length < 1) ?
             Array.from($("#filesection > .file[data-selected='true']", true)) :
             paths.map(path => {
-                const constPath = path.replace(/[\\]+/g, '/').sanitizePath();
+                const constPath = path.sanitizePath();
                 return { dataset: { name: constPath.split('/').at(-1), path: constPath } }
             })
 

@@ -62,7 +62,7 @@ async function changeConfig(key, value) {
         console.error(logPrefix("Error"), error.message);
     }
 }
-const databasePath = (serverConfig.databaseDir.startsWith("$ROOT")) ? path.join(ROOT, serverConfig.databaseDir.replace('$ROOT', '')) : (serverConfig.databaseDir);
+const databasePath = path.normalize(`${(serverConfig.databaseDir.startsWith("$ROOT")) ? path.join(ROOT, serverConfig.databaseDir.replace('$ROOT', '')) : (serverConfig.databaseDir)}/`);
 // Checking if the Directory Exists
 if (!(await directoryExists(databasePath))) {
     console.error(logPrefix('Error'), "Database Directory doesn't exists, please create it");

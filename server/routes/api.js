@@ -50,8 +50,9 @@ String.prototype.sanitizeFolderNameForPath = function () {
 const cloudStorage = multer.diskStorage({
     destination: (req, file, next) => {
         const userId = (req.params.userid === 'u') ? jwt.verify(req.cookies.token, env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID : parseInt(req.params.userid);
+        const homeDirectory = path.join(config.databasePath, `/${userId}/`);
         const directory = req.headers.path.toString().sanitizePath();
-        const destinationPath = path.join(config.databasePath, `/${userId}/`, directory);
+        const destinationPath = path.join(homeDirectory, directory).sanitizePath(true);
         next(null, destinationPath);
     },
     filename: (req, file, next) => {
@@ -218,11 +219,12 @@ router.get('/cloud/files/:userid', Authentication.tokenAPI, async (req, res) => 
     }
     const directory = ((req.headers.path ? req.headers.path : '/').toString()).sanitizePath();
     try {
+        const homeDirectory = path.join(config.databasePath, `/${userID}/`);
         // Checking if the User Data Directory Exists or Not
-        if (!await pathExists(path.join(config.databasePath, `/${userID}/`))) {
-            await fs.mkdir(path.join(config.databasePath, `/${userID}/`));
+        if (!await pathExists(homeDirectory)) {
+            await fs.mkdir(homeDirectory);
         }
-        if (!await pathExists(path.join(config.databasePath, `/${userID}/`, directory))) {
+        if (!await pathExists(path.join(homeDirectory, directory))) {
             return res.status(400).json(resStatusPayload("path doesn't exist!"));
         }
         // The String Returned by the `getFiles` Function is an Error which is meant to be passed to the Client Side
@@ -258,6 +260,7 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
     if (action !== 'open' && action !== 'copy' && action !== 'move' && action !== 'delete' && action !== 'create-file' && action !== 'create-folder') {
         return res.status(405).json(resStatusPayload('Invalid Operation!'));
     }
+    const homeDirectory = path.join(config.databasePath, `/${userID}/`);
     try {
         if (action === 'open') {
             // Sanitization
@@ -265,17 +268,16 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
                 return res.status(406).json(resStatusPayload("Path must be Provided"));
             }
             const directory = req.body.path.toString().sanitizePath();
-            const completePath = path.join(config.databasePath, `/${userID}/`, directory);
-            if (!completePath.includes(config.databasePath)) {
+            const completePath = path.join(homeDirectory, directory);
+            if (!completePath.includes(homeDirectory)) {
                 return res.status(405).json(resStatusPayload("Not Allowed!"));
             }
             if (await checkPathType(completePath) !== 'file') {
                 return res.status(406).json(resStatusPayload("Path must lead to a File!"));
             }
-            if (await isSymlinkAndBreaks(completePath)) {
+            if (await isSymlinkAndBreaks(completePath, userID)) {
                 return res.status(405).json(resStatusPayload("Not Allowed!"));
             }
-            const start = Date.now();
             res.status(200).sendFile(completePath);
         }
         else if (action === 'copy') {
@@ -287,10 +289,10 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
                 return res.status(406).json(resStatusPayload("Path must be Provided"));
             }
             const fromPath = req.body.from.toString().sanitizePath();
-            const fromCompletePath = path.join(config.databasePath, `/${userID}/`, fromPath).sanitizePath(true);
+            const fromCompletePath = path.join(homeDirectory, fromPath).sanitizePath(true);
             const destinationPath = req.body.destination.toString().sanitizePath();
-            const destinationCompletePath = path.join(config.databasePath, `/${userID}/`, destinationPath).sanitizePath(true);
-            if (!fromCompletePath.includes(config.databasePath.sanitizePath(true)) || !destinationCompletePath.includes(config.databasePath.sanitizePath(true))) {
+            const destinationCompletePath = path.join(homeDirectory, destinationPath).sanitizePath(true);
+            if (!fromCompletePath.includes(homeDirectory.sanitizePath(true)) || !destinationCompletePath.includes(homeDirectory.sanitizePath(true))) {
                 return res.status(405).json(resStatusPayload("Not Allowed!"));
             }
             const fromPathType = await checkPathType(fromCompletePath);
@@ -316,10 +318,10 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
                 return res.status(406).json(resStatusPayload("Path must be Provided"));
             }
             const fromPath = req.body.from.toString().sanitizePath();
-            const fromCompletePath = path.join(config.databasePath, `/${userID}/`, fromPath).sanitizePath(true);
+            const fromCompletePath = path.join(homeDirectory, fromPath).sanitizePath(true);
             const destinationPath = req.body.destination.toString().sanitizePath();
-            const destinationCompletePath = path.join(config.databasePath, `/${userID}/`, destinationPath).sanitizePath(true);
-            if (!fromCompletePath.includes(config.databasePath.sanitizePath(true)) || !destinationCompletePath.includes(config.databasePath.sanitizePath(true))) {
+            const destinationCompletePath = path.join(homeDirectory, destinationPath).sanitizePath(true);
+            if (!fromCompletePath.includes(homeDirectory.sanitizePath(true)) || !destinationCompletePath.includes(homeDirectory.sanitizePath(true))) {
                 return res.status(405).json(resStatusPayload("Not Allowed!"));
             }
             const fromPathType = await checkPathType(fromCompletePath);
@@ -342,8 +344,8 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
                 return res.status(406).json(resStatusPayload("Path must be Provided"));
             }
             const directory = req.body.path.toString().sanitizePath();
-            const completePath = path.join(config.databasePath, `/${userID}/`, directory);
-            if (!completePath.includes(config.databasePath)) {
+            const completePath = path.join(homeDirectory, directory);
+            if (!completePath.includes(homeDirectory)) {
                 return res.status(405).json(resStatusPayload("Not Allowed!"));
             }
             const PathType = await checkPathType(completePath);
@@ -372,8 +374,8 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
                 return res.status(406).json(resStatusPayload("Name Too Big!"));
             }
             const directory = req.body.path.toString().sanitizePath();
-            const completePath = path.join(config.databasePath, `/${userID}/`, directory);
-            if (!completePath.includes(config.databasePath)) {
+            const completePath = path.join(homeDirectory, directory);
+            if (!completePath.includes(homeDirectory)) {
                 return res.status(405).json(resStatusPayload("Not Allowed!"));
             }
             const PathType = await checkPathType(completePath);
@@ -399,8 +401,8 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
                 return res.status(406).json(resStatusPayload("Name Too Big!"));
             }
             const directory = req.body.path.toString().sanitizePath();
-            const completePath = path.join(config.databasePath, `/${userID}/`, directory);
-            if (!completePath.includes(config.databasePath)) {
+            const completePath = path.join(homeDirectory, directory);
+            if (!completePath.includes(homeDirectory)) {
                 return res.status(405).json(resStatusPayload("Not Allowed!"));
             }
             const PathType = await checkPathType(completePath);
@@ -470,16 +472,23 @@ async function missingPathandUserID(req, res, next) {
     if (!req.headers.path) {
         return res.status(406).json(resStatusPayload("Path must be Provided"));
     }
+    const inputPath = req.headers.path.toString();
+    const homeDirectory = path.join(config.databasePath, `/${userId}/`);
+    const completeInputPath = path.join(homeDirectory, inputPath);
+    if (!completeInputPath.includes(homeDirectory)) {
+        return res.status(406).json(resStatusPayload("Path Escapes"));
+    }
     next();
 }
-async function isSymlinkAndBreaks(symlinkPath) {
+async function isSymlinkAndBreaks(symlinkPath, userID) {
     try {
+        const homeDirectory = path.join(config.databasePath, `/${userID}/`);
         const stats = await fs.lstat(symlinkPath);
         if (!stats.isSymbolicLink()) {
             return false;
         }
         const link = path.resolve(await fs.readlink(symlinkPath));
-        if (link.includes(config.databasePath)) {
+        if (link.includes(homeDirectory)) {
             return false;
         }
         return true;

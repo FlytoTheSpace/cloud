@@ -92,7 +92,7 @@ async function changeConfig (key: string, value: string | number | boolean | fea
     }
 }
 
-const databasePath: string = (serverConfig.databaseDir.startsWith("$ROOT"))? path.join(ROOT, serverConfig.databaseDir.replace('$ROOT', '')) : ( serverConfig.databaseDir);
+const databasePath: string = path.normalize(`${(serverConfig.databaseDir.startsWith("$ROOT"))? path.join(ROOT, serverConfig.databaseDir.replace('$ROOT', '')) : ( serverConfig.databaseDir)}/`);
 
 // Checking if the Directory Exists
 
