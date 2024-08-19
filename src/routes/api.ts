@@ -64,6 +64,7 @@ const cloudStorage = multer.diskStorage({
         const userId: number = (req.params.userid === 'u') ? (jwt.verify(req.cookies.token, env.ACCOUNTS_TOKEN_VERIFICATION_KEY) as accountInterface).userID : parseInt(req.params.userid);
         const homeDirectory = path.join(config.databasePath, `/${userId}/`);
         const directory = ((req.headers.path as any).toString() as string).sanitizePath()
+        // file.size
         const destinationPath = path.join(homeDirectory, directory).sanitizePath(true)
         next(null, destinationPath);
     },
@@ -435,6 +436,7 @@ async function missingPathandUserID(req: Request, res: Response, next: NextFunct
     const inputPath = req.headers.path.toString();
     const homeDirectory = path.join(config.databasePath, `/${userId}/`)
     const completeInputPath = path.join(homeDirectory, inputPath);
+    if(!await pathExists(completeInputPath)) { return res.status(406).json(resStatusPayload("Invalid Path")) }
     if(!completeInputPath.includes(homeDirectory)) { return res.status(406).json(resStatusPayload("Path Escapes")) }
     next();
 }
