@@ -1,12 +1,13 @@
 {
     "devMode": false,
-    "databaseDir": "$ROOT/database",
-    "firstrun": true,
+    "databaseDir": "$ROOT/database/",
     "namesizelimit": 255,
+    "firstrun": true,
     "browserOnRun": true,
     "sessionTokenExpiration": 30,
     "features": {
         "console": false,
         "redis": false
-    }
+    },
+    "allowOrigin": null
 }

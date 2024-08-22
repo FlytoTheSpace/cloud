@@ -8,9 +8,20 @@ import APIRouter from "./api.js";
 import ROOT from "../assets/root.js";
 import UI from '../assets/ui.js';
 import path from 'path';
+import ipv4 from '../assets/ipv4.js';
+import env from '../assets/env.js';
 
-const app = express()
-const server = createServer(app)
+export const PORT: number = env.PORT? parseInt(env.PORT) : 8080;
+import config from '../assets/config.js';
+export const app = express()
+export const server = createServer(app)
+export const origin = `http://${ipv4}:${PORT}`
+
+app.use((req, res, next)=>{
+    res.setHeader("Access-Control-Allow-Origin", config.serverConfig.allowOrigin.toString() )
+    res.setHeader("Access-Control-Allow-Credentials", "false" )
+    next()
+})
 
 app.use(express.static(path.join(ROOT, 'client/static/')))
 

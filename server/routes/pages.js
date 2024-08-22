@@ -18,7 +18,7 @@ for (let i = 0; i < routeFiles.length; i++) {
     if (routeFileURL[i] === 'index') {
         router.get(`/`, (req, res) => {
             try {
-                res.sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`));
+                res.status(200).sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`));
             }
             catch (error) {
                 logMSG("Pages", `Unable to serve file: ${routeFiles[i]}`);
@@ -29,7 +29,7 @@ for (let i = 0; i < routeFiles.length; i++) {
         if (TokenAuthenticationRoutes.includes(routeFileURL[i])) {
             router.get(`/${routeFileURL[i]}`, Authentication.token, (req, res) => {
                 try {
-                    res.sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`));
+                    res.status(200).sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`));
                 }
                 catch (error) {
                     logMSG("Pages", `Unable to serve file: ${routeFiles[i]}`);
@@ -39,7 +39,7 @@ for (let i = 0; i < routeFiles.length; i++) {
         else if (adminOnlyRoutes.includes(routeFileURL[i])) {
             router.get(`/${routeFileURL[i]}`, Authentication.tokenAdmin, (req, res) => {
                 try {
-                    res.sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`));
+                    res.status(200).sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`));
                 }
                 catch (error) {
                     logMSG("Pages", `Unable to serve file: ${routeFiles[i]}`);
@@ -49,7 +49,7 @@ for (let i = 0; i < routeFiles.length; i++) {
         else {
             router.get(`/${routeFileURL[i]}`, (req, res) => {
                 try {
-                    res.sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`));
+                    res.status(200).sendFile(path.join(ROOT, `client/routes/${routeFiles[i]}`));
                 }
                 catch (error) {
                     logMSG("Pages", `Unable to serve file: ${routeFiles[i]}`);

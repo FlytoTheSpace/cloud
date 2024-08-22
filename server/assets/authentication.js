@@ -57,7 +57,7 @@ export const Authentication = {
                 return send(401, "Invalid Token");
             }
             // Finding The User in the Database
-            const matchedAccount = await Accounts.findAccountOne.email(decodedToken.email);
+            const matchedAccount = await Accounts.findOne.email(decodedToken.email);
             if (!matchedAccount) {
                 return send(404, "Invalid Token, Account Doesn't Exist");
             }
@@ -66,7 +66,7 @@ export const Authentication = {
             if (!isPasswordMatch) {
                 return send(401, "Invalid Token");
             }
-            if (!options.API && !options.returnBool && res) {
+            if (res) {
                 // Assigning the User a Session Token if not an API and Not returnBool since it will be used in Web Sockets for Auth
                 const sessionTokenPayload = {
                     'token': token,
@@ -96,11 +96,11 @@ export const Authentication = {
     isSessionTokenValid: (req) => {
         try {
             // Checking if Session Token or Token is Missing
-            if (!req.headers.cookie) {
+            if (!req.headers.authorization && !req.headers.cookie) {
                 return false;
             }
             // Token Verification
-            const token = getCookie(req.headers.cookie, 'token');
+            const token = (getCookie(req.headers.cookie, 'token') || req.headers.authorization)?.toString();
             if (!token) {
                 return false;
             }
@@ -142,21 +142,63 @@ export const Authentication = {
             return false;
         }
     },
-    isSessionTokenValidandAdmin: (req) => {
+    generateSessionToken: (req, res) => {
+        if (!req.headers.authorization && !req.headers.cookie) {
+            return null;
+        }
+        // Token Verification
+        const token = (getCookie(req.headers.cookie, 'token') || req.headers.authorization)?.toString();
+        if (!token) {
+            return null;
+        }
+        ;
+        if (!Accounts.token.validate(token)) {
+            return null;
+        }
+        ;
+        const sessionTokenPayload = {
+            'token': token,
+            'ip': (req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0] : (req.ip || req.address)),
+            'creation': Date.now()
+        };
+        const expiration = new Date();
+        expiration.setMinutes(expiration.getMinutes() + sessionTokenExpiration);
+        const sessionToken = jwt.sign(sessionTokenPayload, env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY);
+        const sessionTokenAssignment = [sessionToken, {
+                expires: expiration,
+                httpOnly: true,
+                path: '/',
+                sameSite: 'strict'
+            }];
+        if (res) {
+            res.cookie('sessionToken', ...sessionTokenAssignment);
+        }
+        return sessionTokenAssignment;
+    },
+    isSessionTokenValidandAdmin: async (req, res) => {
         const response = { valid: false, admin: false };
         try {
             // Checking if Session Token or Token is Missing
-            if (!req.cookies.sessionToken || !req.cookies.token) {
+            let sessionTokenAssigned = null;
+            if (!req.cookies.sessionToken && res) {
+                const sessionTokenAssignment = Authentication.generateSessionToken(req, res);
+                if (!sessionTokenAssignment) {
+                    return response;
+                }
+                sessionTokenAssigned = sessionTokenAssignment[0];
+                response.valid = true;
+            }
+            if ((!req.cookies.sessionToken && !sessionTokenAssigned) || (!req.cookies.token && !req.headers.authorization)) {
                 return response;
             }
             // Token Verification
-            const token = req.cookies.token.toString();
+            const token = (req.cookies.token || req.headers.authorization).toString();
             const decodedToken = Accounts.token.validate(token);
             if (!decodedToken) {
                 return response;
             }
             // Session Token Verification
-            const sessionToken = req.cookies.sessionToken.toString();
+            const sessionToken = (req.cookies.sessionToken || sessionTokenAssigned).toString();
             const decodedSessionToken = Accounts.sessionToken.validate(sessionToken);
             if (!decodedSessionToken) {
                 return response;
@@ -194,10 +236,10 @@ export const Authentication = {
             return response;
         }
     },
-    getGeneralInfo: async (req) => {
+    getGeneralInfo: async (req, res) => {
         const info = { loggedIn: false, admin: false };
         try {
-            const session = Authentication.isSessionTokenValidandAdmin(req);
+            const session = await Authentication.isSessionTokenValidandAdmin(req, res);
             if (session.valid === true) {
                 info.loggedIn = true;
                 if (session.admin === true) {
@@ -205,16 +247,16 @@ export const Authentication = {
                 }
                 return info;
             }
-            if (!req.cookies.token) {
+            if (!req.cookies.token || !req.headers.authorization) {
                 return info;
             }
-            const token = req.cookies.token.toString();
+            const token = (req.cookies.token || req.headers.authorization).toString();
             const decodedToken = Accounts.token.validate(token);
             if (!decodedToken) {
                 return info;
             }
             // Finding The User in the Database
-            const matchedAccount = await Accounts.findAccountOne.email(decodedToken.email);
+            const matchedAccount = await Accounts.findOne.email(decodedToken.email);
             if (!matchedAccount) {
                 return info;
             }

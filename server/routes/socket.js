@@ -36,8 +36,8 @@ io.on('connection', (socket) => {
             });
         }
     });
-    if (config.serverConfig.features.console) {
-        socket.on('command', async (CMD) => {
+    socket.on('command', async (CMD) => {
+        if (config.serverConfig.features.console) {
             try {
                 // Authentication
                 const isAuthorized = await Authentication.main(socket.handshake, null, () => { }, {
@@ -123,6 +123,16 @@ io.on('connection', (socket) => {
                     }
                 });
             }
-        });
-    }
+        }
+        else {
+            socket.emit(events.error, {
+                status: "This Feature is Disabled",
+                success: false,
+                data: null,
+                meta: {
+                    event: events.error,
+                }
+            });
+        }
+    });
 });

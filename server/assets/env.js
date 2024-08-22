@@ -11,7 +11,7 @@ const errors = [];
 for (let key of envVarNames) {
     if (process.env[key] === undefined) {
         if (key === 'PORT') {
-            console.log(logPrefix('Warning'), `Environment Variable "${key}" is Not Configured!`);
+            console.error(logPrefix('Warning'), `Environment Variable "${key}" is Not Configured!`);
             continue;
         }
         errors.push(`${logPrefix('Error')} Environment Variable "${key}" is Not Configured!`);
@@ -19,7 +19,7 @@ for (let key of envVarNames) {
 }
 if (errors.length) {
     for (let error of errors) {
-        console.log(error);
+        console.error(logPrefix('error'), error);
     }
     process.exit(1);
 }

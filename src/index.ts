@@ -8,21 +8,19 @@ import {Accounts} from './assets/database.js'
 import config from './assets/config.js';
 
 // Routers
-import server from './routes/server.js';
+import server, {PORT, origin} from './routes/server.js';
 
 import './routes/socket.js'
 
-const PORT: number = env.PORT? parseInt(env.PORT) : 8080;
 // Middlewares
 
 server.listen(PORT, ()=>{
-    const link = `http://${ipv4}:${PORT}`
-    console.log(logPrefix('Server'), `Server Started on ${link}`)
+    console.log(logPrefix('Server'), `Server Started on ${origin}`)
     if(config.serverConfig.browserOnRun === true && config.serverConfig.devMode === false){
         if(config.serverConfig.firstrun === true){
-            exec(`start ${link}/register`, ()=>{})
+            exec(`start ${origin}/register`, ()=>{})
         } else {
-            exec(`start ${link}`, ()=>{})
+            exec(`start ${origin}`, ()=>{})
         }
     }
 })

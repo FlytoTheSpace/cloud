@@ -1,0 +1,66 @@
+{
+    "authorizations": {
+        "shared ": {
+            "/my-file.txt": {
+                "type": "file",
+                "access": {
+                    "1:2261048875": {
+                        "permissions": {
+                            "read": true,
+                            "write": true,
+                            "delete": true
+                        },
+                        "limits": {
+                            "read": 4,
+                            "write": 1
+                        },
+                        "expire": 1724155698029
+                    },
+                    "2:my-group": {
+                        "permissions": {
+                            "read": true,
+                            "write": true,
+                            "delete": false
+                        },
+                        "limits": {
+                            "read": "infinite",
+                            "write": "infinite"
+                        },
+                        "expire": 1724155698029
+                    },
+                    "3:admin": {
+                        "permissions": {
+                            "read": true,
+                            "write": false,
+                            "delete": false
+                        },
+                        "limits": {
+                            "read": "infinite",
+                            "write": 0
+                        },
+                        "expire": 1724155698029
+                    },
+                    "4:public": {
+                        "permissions": {
+                            "read": true,
+                            "write": false,
+                            "delete": false
+                        },
+                        "limits": {
+                            "read": "infinite",
+                            "write": 0
+                        },
+                        "expire": 1724155698029
+                    }
+                }
+            }
+        }
+    },
+    "settings": {
+        "theme": "dark"
+    },
+    "storageLimit": 10737418240,
+    "groups": [
+        "my-group"
+    ]
+}

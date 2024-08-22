@@ -49,9 +49,10 @@ String.prototype.sanitizeFolderNameForPath = function () {
 };
 const cloudStorage = multer.diskStorage({
     destination: (req, file, next) => {
-        const userId = (req.params.userid === 'u') ? jwt.verify(req.cookies.token, env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID : parseInt(req.params.userid);
+        const userId = parseUserID((req.cookies.token || req.headers.authorization), 'u');
         const homeDirectory = path.join(config.databasePath, `/${userId}/`);
         const directory = req.headers.path.toString().sanitizePath();
+        // file.size
         const destinationPath = path.join(homeDirectory, directory).sanitizePath(true);
         next(null, destinationPath);
     },
@@ -73,7 +74,7 @@ router.post('/submit/login', async (req, res) => {
     }
     catch (error) {
         if (config.serverConfig.devMode) {
-            console.log(logPrefix("API"), error);
+            console.error(logPrefix("error"), error);
         }
         ;
         return res.status(406).json(resStatusPayload('please provide all the fields!', false));
@@ -89,14 +90,14 @@ router.post('/submit/login', async (req, res) => {
     if (req.body.usernameOrEmail.includes('@')) {
         // if it's an Email:
         const email = usernameOrEmail;
-        matchedAccount = await Accounts.findAccountOne.email(email); // The Matched Account
+        matchedAccount = await Accounts.findOne.email(email); // The Matched Account
     }
     else {
         // If it's a Username:
         const username = usernameOrEmail.replace(/ \@ | \+ /g, '');
         if (username.length < 4)
             return res.status(406).json(resStatusPayload('username must be atleast 4 characters long!'));
-        matchedAccount = await Accounts.findAccountOne.username(username); // The Matched Account
+        matchedAccount = await Accounts.findOne.username(username); // The Matched Account
     }
     if (!matchedAccount)
         return res.status(406).json(resStatusPayload("account doesn't exist!"));
@@ -197,7 +198,7 @@ router.post('/submit/register', async (req, res) => {
 });
 router.get('/get/account/info', async (req, res) => {
     try {
-        res.status(200).json(await Authentication.getGeneralInfo(req));
+        res.status(200).json(await Authentication.getGeneralInfo(req, res));
     }
     catch (error) {
         console.log(logPrefix("API"), error);
@@ -210,11 +211,8 @@ router.get('/cloud/files/:userid', Authentication.tokenAPI, async (req, res) => 
     if (!req.params.userid) {
         return res.status(400).send({ 'status': 'please provide userid', 'success': false });
     }
-    let userID;
-    try {
-        userID = (req.params.userid === 'u') ? jwt.verify(req.cookies.token, env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID : parseInt(req.params.userid);
-    }
-    catch (error) {
+    let userID = parseUserID(req.cookies.token || req.headers.authorization, req.params.userID);
+    if (!userID) {
         return res.status(400).send({ 'status': 'invalid user ID', 'success': false });
     }
     const directory = ((req.headers.path ? req.headers.path : '/').toString()).sanitizePath();
@@ -241,14 +239,88 @@ router.get('/cloud/files/:userid', Authentication.tokenAPI, async (req, res) => 
 router.post('/cloud/files/upload/:userid', Authentication.tokenAPI, missingPathandUserID, cloudUpload.any(), (req, res) => {
     res.status(201).json(resStatusPayload('successfully uploaded your files!', true));
 });
-router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, res) => {
+// Cloud Actions
+// Delete
+router.get('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, res) => {
     // Sanitization
     if (!req.params.userid) {
         return res.status(400).send({ 'status': 'please provide userid', 'success': false });
     }
     let userID;
     try {
-        userID = (req.params.userid === 'u') ? jwt.verify(req.cookies.token, env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID : parseInt(req.params.userid);
+        userID = (req.params.userid === 'u') ? jwt.verify((req.cookies.token || req.headers.authorization), env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID : parseInt(req.params.userid);
+    }
+    catch (error) {
+        return res.status(400).send({ 'status': 'invalid user ID', 'success': false });
+    }
+    const homeDirectory = path.join(config.databasePath, `/${userID}/`);
+    try {
+        if (!req.headers.path) {
+            return res.status(406).json(resStatusPayload("Path must be Provided"));
+        }
+        const directory = req.headers.path.toString().sanitizePath();
+        const completePath = path.join(homeDirectory, directory);
+        if (!completePath.includes(homeDirectory)) {
+            return res.status(405).json(resStatusPayload("Not Allowed!"));
+        }
+        if (await checkPathType(completePath) !== 'file') {
+            return res.status(406).json(resStatusPayload("Path must lead to a File!"));
+        }
+        if (await isSymlinkAndBreaks(completePath, userID)) {
+            return res.status(405).json(resStatusPayload("Not Allowed!"));
+        }
+        res.status(200).sendFile(completePath);
+    }
+    catch (error) {
+        console.log(logPrefix("Cloud"), error);
+        return res.status(400).json(resStatusPayload("something went wrong!"));
+    }
+});
+// Delete
+router.delete('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, res) => {
+    // Sanitization
+    if (!req.params.userid) {
+        return res.status(400).send({ 'status': 'please provide userid', 'success': false });
+    }
+    let userID = parseUserID(req.cookies.token || req.headers.authorization, req.params.userID);
+    if (!userID) {
+        return res.status(400).send({ 'status': 'invalid user ID', 'success': false });
+    }
+    const homeDirectory = path.join(config.databasePath, `/${userID}/`);
+    if (!req.body.path) {
+        return res.status(406).json(resStatusPayload("Path must be Provided"));
+    }
+    const directory = req.body.path.toString().sanitizePath();
+    const completePath = path.join(homeDirectory, directory);
+    if (!completePath.includes(homeDirectory)) {
+        return res.status(405).json(resStatusPayload("Not Allowed!"));
+    }
+    const PathType = await checkPathType(completePath);
+    if (PathType === 'unknown') {
+        return res.status(406).json(resStatusPayload("Path is must be lead to a File/Folder!"));
+    }
+    try {
+        if (PathType === 'file') {
+            await fs.unlink(completePath);
+        }
+        else {
+            await fs.rm(completePath, { force: true, recursive: true });
+        }
+        return res.status(200).json({ 'status': `successfully deleted The ${PathType}!`, 'success': true });
+    }
+    catch {
+        return res.status(400).json({ 'status': "something went wrong", 'success': false });
+    }
+});
+// Copy/Move
+router.patch('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, res) => {
+    // Sanitization
+    if (!req.params.userid) {
+        return res.status(400).send({ 'status': 'please provide userid', 'success': false });
+    }
+    let userID;
+    try {
+        userID = (req.params.userid === 'u') ? jwt.verify((req.cookies.token || req.headers.authorization), env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID : parseInt(req.params.userid);
     }
     catch (error) {
         return res.status(400).send({ 'status': 'invalid user ID', 'success': false });
@@ -257,30 +329,12 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
         return res.status(406).json(resStatusPayload('An Action must be Provided'));
     }
     const action = req.headers.action.toString();
-    if (action !== 'open' && action !== 'copy' && action !== 'move' && action !== 'delete' && action !== 'create-file' && action !== 'create-folder') {
+    if (action !== 'copy' && action !== 'move' && action !== 'create-file' && action !== 'create-folder') {
         return res.status(405).json(resStatusPayload('Invalid Operation!'));
     }
     const homeDirectory = path.join(config.databasePath, `/${userID}/`);
     try {
-        if (action === 'open') {
-            // Sanitization
-            if (!req.body.path) {
-                return res.status(406).json(resStatusPayload("Path must be Provided"));
-            }
-            const directory = req.body.path.toString().sanitizePath();
-            const completePath = path.join(homeDirectory, directory);
-            if (!completePath.includes(homeDirectory)) {
-                return res.status(405).json(resStatusPayload("Not Allowed!"));
-            }
-            if (await checkPathType(completePath) !== 'file') {
-                return res.status(406).json(resStatusPayload("Path must lead to a File!"));
-            }
-            if (await isSymlinkAndBreaks(completePath, userID)) {
-                return res.status(405).json(resStatusPayload("Not Allowed!"));
-            }
-            res.status(200).sendFile(completePath);
-        }
-        else if (action === 'copy') {
+        if (action === 'copy') {
             // Sanitization
             if (!req.body.from) {
                 return res.status(406).json(resStatusPayload("Path must be Provided"));
@@ -338,29 +392,34 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
                 return res.status(406).json(resStatusPayload("Unable to Move Your Files!"));
             }
         }
-        else if (action === 'delete') {
-            // Sanitization
-            if (!req.body.path) {
-                return res.status(406).json(resStatusPayload("Path must be Provided"));
-            }
-            const directory = req.body.path.toString().sanitizePath();
-            const completePath = path.join(homeDirectory, directory);
-            if (!completePath.includes(homeDirectory)) {
-                return res.status(405).json(resStatusPayload("Not Allowed!"));
-            }
-            const PathType = await checkPathType(completePath);
-            if (PathType === 'unknown') {
-                return res.status(406).json(resStatusPayload("Path is must be lead to a File/Folder!"));
-            }
-            if (PathType === 'file') {
-                await fs.unlink(completePath);
-            }
-            else {
-                await fs.rm(completePath, { force: true, recursive: true });
-            }
-            res.status(200).json({ 'status': `successfully deleted The ${PathType}!`, 'success': true });
-        }
-        else if (action === 'create-file') {
+    }
+    catch (error) {
+        return res.status(400).json(resStatusPayload("something went wrong!"));
+    }
+});
+// Create File/Folder
+router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req, res) => {
+    // Sanitization
+    if (!req.params.userid) {
+        return res.status(400).send({ 'status': 'please provide userid', 'success': false });
+    }
+    let userID;
+    try {
+        userID = (req.params.userid === 'u') ? jwt.verify((req.cookies.token || req.headers.authorization), env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID : parseInt(req.params.userid);
+    }
+    catch (error) {
+        return res.status(400).send({ 'status': 'invalid user ID', 'success': false });
+    }
+    if (!req.headers.action) {
+        return res.status(406).json(resStatusPayload('An Action must be Provided'));
+    }
+    const action = req.headers.action.toString();
+    if (action !== 'copy' && action !== 'move' && action !== 'create-file' && action !== 'create-folder') {
+        return res.status(405).json(resStatusPayload('Invalid Operation!'));
+    }
+    const homeDirectory = path.join(config.databasePath, `/${userID}/`);
+    try {
+        if (action === 'create-file') {
             // Sanitization
             if (!req.body.path) {
                 return res.status(406).json(resStatusPayload("Path must be Provided"));
@@ -407,13 +466,13 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
             }
             const PathType = await checkPathType(completePath);
             if (PathType === 'unknown') {
-                return res.status(406).json(resStatusPayload("Path is must be lead to a File/Folder!"));
+                return res.status(406).json(resStatusPayload("Path is must be lead to a Folder!"));
             }
             if (await pathExists(path.join(completePath, name))) {
                 return res.status(409).json(resStatusPayload("Folder Already Exists!"));
             }
             fs.mkdir(path.join(completePath, name));
-            res.status(200).json({ 'status': `successfully created The File!`, 'success': true });
+            res.status(200).json({ 'status': `successfully created The Folder!`, 'success': true });
         }
     }
     catch (error) {
@@ -421,12 +480,10 @@ router.post('/cloud/files/actions/:userid', Authentication.tokenAPI, async (req,
         return res.status(400).json(resStatusPayload("something went wrong!"));
     }
 });
+// General
 router.get('/u/info/userid', Authentication.tokenAPI, (req, res) => {
     try {
-        if (!req.cookies.token) {
-            res.status(200).json({ 'userID': null });
-        }
-        const userID = jwt.verify(req.cookies.token, env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID;
+        const userID = parseUserID(req.cookies.token || req.headers.authorization, 'u');
         res.status(200).json({ 'userID': userID });
     }
     catch (error) {
@@ -456,6 +513,17 @@ router.post(`/${env.ADMIN_PAGE_URL}`, Authentication.tokenAdminAPI, (req, res) =
             break;
     }
 });
+function parseUserID(token, userID) {
+    try {
+        if (!(/[^1-9]/g).test(userID) && (/[1-9]{11}/g).test(userID)) {
+            return parseInt(userID);
+        }
+        return jwt.verify(token, env.ACCOUNTS_TOKEN_VERIFICATION_KEY).userID;
+    }
+    catch (error) {
+        return null;
+    }
+}
 // Custom Middlwares
 async function missingPathandUserID(req, res, next) {
     const token = (req.cookies.token || req.headers.authorization).toString();
@@ -475,6 +543,9 @@ async function missingPathandUserID(req, res, next) {
     const inputPath = req.headers.path.toString();
     const homeDirectory = path.join(config.databasePath, `/${userId}/`);
     const completeInputPath = path.join(homeDirectory, inputPath);
+    if (!await pathExists(completeInputPath)) {
+        return res.status(406).json(resStatusPayload("Invalid Path"));
+    }
     if (!completeInputPath.includes(homeDirectory)) {
         return res.status(406).json(resStatusPayload("Path Escapes"));
     }
@@ -494,7 +565,7 @@ async function isSymlinkAndBreaks(symlinkPath, userID) {
         return true;
     }
     catch (error) {
-        console.log(error);
+        console.error(logPrefix('error'), error);
         return false;
     }
 }
@@ -504,11 +575,9 @@ function generateUserID() {
     const maxID = 9999999999;
     let userID = Math.floor(Math.random() * (maxID - minID + 1)) + minID;
     // Check if the generated userID already exists in the database
-    if (!Accounts.findAccountOne.userID(userID)) {
+    if (!Accounts.findOne.userID(userID)) {
         return generateUserID(); // Recursively generate new userID
     }
-    else {
-        return userID; // Return the unique userID
-    }
+    return userID; // Return the unique userID
 }
 export default router;

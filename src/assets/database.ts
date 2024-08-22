@@ -21,7 +21,6 @@ const connect = async ():Promise<string>=>{
     mongoose.connect(env.mongoDBURI);
     return `Connected to MongoDB`;
 }
-
 const timeout = new Promise((_, rej)=>{
     setTimeout(()=>{
         rej(new Error("MongoDB Connection Timeout!"))
@@ -47,26 +46,42 @@ export const AccountsSchema = new Schema({
     emailVerified: Boolean
 });
 
-export const AccountsModel = mongoose.model("accounts", AccountsSchema, 'accounts') // <---  User Model
+export const AccountsModel = mongoose.model('accounts', AccountsSchema, 'accounts') // <---  User Model
+export const ConfigModel = mongoose.model('config', AccountsSchema, 'config') // <---  User Model
 
 // Accessories for Working with Accounts
 export const Accounts = {
-    findAccountOne: {
+    findOne: {
         username: async (username: string): Promise<accountInterface | undefined> => (await AccountsModel.find({'username' : username})).map(account => account.toJSON())[0] as accountInterface | undefined,
         email: async (email: string): Promise<accountInterface | undefined> => (await AccountsModel.find({'email' : email})).map(account => account.toJSON())[0] as accountInterface | undefined,
         userID: async (ID: number): Promise<accountInterface | undefined> => (await AccountsModel.find({'userID' : ID})).map(account => account.toJSON())[0] as accountInterface | undefined,
     },
-    findAccounts: {
-        username: async (username: string) => (await AccountsModel.find({'username' : username})).map(account => account.toJSON()),
-        email: async (email: string) => (await AccountsModel.find({'email' : email})).map(account => account.toJSON()),
-        userID: async (ID: number) => (await AccountsModel.find({'userID' : ID})).map(account => account.toJSON()),
+    findMany: async (filter: object, limit?: number, offset?: number): Promise<accountInterface[]|null>=>{
+        const Accounts = (limit)?
+            (offset?
+                await AccountsModel.find(filter).limit(limit).skip(offset):
+                await AccountsModel.find(filter).limit(limit)):
+            (await AccountsModel.find(filter));
+        
+        for(let i = 0; i<Accounts.length; i++){
+            Accounts[i] = Accounts[i].toJSON()
+        };
+        return (Accounts as accountInterface[]);
     },
-    getAll: async () => (await AccountsModel.find({})).map(account=>account.toJSON()),
-    updateOne: async (filter: object, updatedValue: object)=>{
-        try{
-            await AccountsModel.findOneAndUpdate(filter, updatedValue);
-        } catch (error){
-            console.error(logPrefix("Error"), "Unable to Find/Update The Specified User")
+    updateOne: async (filter: object, update: object): Promise<boolean>=>{
+        try {
+            await AccountsModel.updateOne(filter,update)
+            return true
+        } catch (error) {
+            return false
+        }
+    },
+    updateMany: async (filter: object, update: object): Promise<boolean>=>{
+        try {
+            const updatedAccount = await AccountsModel.updateMany(filter, update);
+            return true;
+        } catch (error) {
+            return false;
         }
     },
     register: async (userData: accountInterface): Promise<void> => {

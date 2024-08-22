@@ -31,26 +31,43 @@ export const AccountsSchema = new Schema({
     role: String,
     emailVerified: Boolean
 });
-export const AccountsModel = mongoose.model("accounts", AccountsSchema, 'accounts'); // <---  User Model
+export const AccountsModel = mongoose.model('accounts', AccountsSchema, 'accounts'); // <---  User Model
+export const ConfigModel = mongoose.model('config', AccountsSchema, 'config'); // <---  User Model
 // Accessories for Working with Accounts
 export const Accounts = {
-    findAccountOne: {
+    findOne: {
         username: async (username) => (await AccountsModel.find({ 'username': username })).map(account => account.toJSON())[0],
         email: async (email) => (await AccountsModel.find({ 'email': email })).map(account => account.toJSON())[0],
         userID: async (ID) => (await AccountsModel.find({ 'userID': ID })).map(account => account.toJSON())[0],
     },
-    findAccounts: {
-        username: async (username) => (await AccountsModel.find({ 'username': username })).map(account => account.toJSON()),
-        email: async (email) => (await AccountsModel.find({ 'email': email })).map(account => account.toJSON()),
-        userID: async (ID) => (await AccountsModel.find({ 'userID': ID })).map(account => account.toJSON()),
+    findMany: async (filter, limit, offset) => {
+        const Accounts = (limit) ?
+            (offset ?
+                await AccountsModel.find(filter).limit(limit).skip(offset) :
+                await AccountsModel.find(filter).limit(limit)) :
+            (await AccountsModel.find(filter));
+        for (let i = 0; i < Accounts.length; i++) {
+            Accounts[i] = Accounts[i].toJSON();
+        }
+        ;
+        return Accounts;
     },
-    getAll: async () => (await AccountsModel.find({})).map(account => account.toJSON()),
-    updateOne: async (filter, updatedValue) => {
+    updateOne: async (filter, update) => {
         try {
-            await AccountsModel.findOneAndUpdate(filter, updatedValue);
+            await AccountsModel.updateOne(filter, update);
+            return true;
         }
         catch (error) {
-            console.error(logPrefix("Error"), "Unable to Find/Update The Specified User");
+            return false;
+        }
+    },
+    updateMany: async (filter, update) => {
+        try {
+            const updatedAccount = await AccountsModel.updateMany(filter, update);
+            return true;
+        }
+        catch (error) {
+            return false;
         }
     },
     register: async (userData) => {

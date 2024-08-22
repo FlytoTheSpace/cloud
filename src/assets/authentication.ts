@@ -15,12 +15,12 @@ export interface SessionTokenPayload {
     creation: number
 }
 
-function getCookie<T>(cookie: T, inputKey: string): string | null{
-    if(typeof cookie !== 'string'){ return null }
+function getCookie<T>(cookie: T, inputKey: string): string | null {
+    if (typeof cookie !== 'string') { return null }
     const cookies = cookie.replace(/ /g, '').split(';')
-    for(let i = 0; i<cookies.length; i++){
+    for (let i = 0; i < cookies.length; i++) {
         const [key, value] = decodeURIComponent(cookies[i]).split('=')
-        if(key === inputKey){return value};
+        if (key === inputKey) { return value };
     };
     return null;
 };
@@ -36,42 +36,42 @@ export interface getGeneralInfoInterface {
 * @param msg string
 * @param API API or Not?
 */
-export function resErrorPayload (msg: string, API: boolean = false){
+export function resErrorPayload(msg: string, API: boolean = false) {
     return API ? { 'status': msg, 'success': false } : UI.errorMSG(msg)
 }
 export const Authentication = {
     // Functions inside "tools" property are untilities that are used Inside other Functions in this Object
     tools: {
-        
+
     },
     // Main Function for Authentication
-    main: async (req: Request | Handshake, res: Response | null, next: NextFunction, options: {API?: boolean, adminOnly?: boolean, returnBool?: boolean}): Promise<void | Response<any, Record<string, any>>|boolean> => {
+    main: async (req: Request | Handshake, res: Response | null, next: NextFunction, options: { API?: boolean, adminOnly?: boolean, returnBool?: boolean }): Promise<void | Response<any, Record<string, any>> | boolean> => {
         try {
-            function send(status: number, msg: string){
-                return (options.returnBool || !res)? false: res.status(status).send(resErrorPayload(msg, options.API))
+            function send(status: number, msg: string) {
+                return (options.returnBool || !res) ? false : res.status(status).send(resErrorPayload(msg, options.API))
             }
             // Verifying Token is Valid
             if (!req.headers.cookie && !req.headers.authorization) { return send(401, "Account Required") }
 
             const token: string | undefined = (getCookie(req.headers.cookie, 'token') || req.headers.authorization?.toString());
             if (!token) { return send(401, "Invalid Token",) }
-            
+
             // Must Continue with Normal Authentication If AdminOnly because, sessionToken Auth can cause Buggy Behavior If The Account is Deleted on The Database
-            if (!options.adminOnly && Authentication.isSessionTokenValid(req)) { return (options.returnBool || !res)? true: next() }
+            if (!options.adminOnly && Authentication.isSessionTokenValid(req)) { return (options.returnBool || !res) ? true : next() }
 
             const decodedToken: accountInterface | null = Accounts.token.validate(token)
-            
+
             if (!decodedToken) { return send(401, "Invalid Token") }
-            
+
             // Finding The User in the Database
-            const matchedAccount: accountInterface | undefined = await Accounts.findAccountOne.email(decodedToken.email)
+            const matchedAccount: accountInterface | undefined = await Accounts.findOne.email(decodedToken.email)
             if (!matchedAccount) { return send(404, "Invalid Token, Account Doesn't Exist") }
-            
+
             // Checking Password
             const isPasswordMatch: boolean = crypto.timingSafeEqual(Buffer.from(decodedToken.password), Buffer.from(matchedAccount.password))
             if (!isPasswordMatch) { return send(401, "Invalid Token") }
 
-            if (!options.API && !options.returnBool && res) {
+            if (res) {
                 // Assigning the User a Session Token if not an API and Not returnBool since it will be used in Web Sockets for Auth
                 const sessionTokenPayload: SessionTokenPayload = {
                     'token': token,
@@ -92,23 +92,23 @@ export const Authentication = {
 
             if (options.adminOnly && matchedAccount.role !== 'admin') { return send(401, "Admin Only!") }
 
-            return (options.returnBool || !res)? true: next() // Authentication Passed! (Admin Mode)
+            return (options.returnBool || !res) ? true : next() // Authentication Passed! (Admin Mode)
         } catch (error) {
             console.error(logPrefix("Error"), error)
-            return (options.returnBool || !res)? false: res.status(500).send(resErrorPayload("internal server error!", options.API))
+            return (options.returnBool || !res) ? false : res.status(500).send(resErrorPayload("internal server error!", options.API))
         }
     },
     isSessionTokenValid: (req: Request | Handshake): boolean => {
         try {
             // Checking if Session Token or Token is Missing
-            if (!req.headers.cookie) { return false }
+            if (!req.headers.authorization && !req.headers.cookie) { return false }
 
             // Token Verification
-            const token: string | null = getCookie(req.headers.cookie, 'token');
+            const token: string | null | undefined = (getCookie(req.headers.cookie, 'token') || req.headers.authorization)?.toString();
             if (!token) { return false }
             const decodedToken: accountInterface | null = Accounts.token.validate(token)
             if (!decodedToken) { return false }
-            
+
             const sessionToken: string | null = getCookie(req.headers.cookie, 'sessionToken');
             if (!sessionToken) { return false }
             const decodedSessionToken: SessionTokenPayload | null = Accounts.sessionToken.validate(sessionToken)
@@ -133,19 +133,52 @@ export const Authentication = {
             return false
         }
     },
-    isSessionTokenValidandAdmin: (req: Request): {valid: boolean, admin: boolean} => {
-        const response: {valid: boolean, admin: boolean} = {valid: false, admin: false}
+    generateSessionToken: (req: Request | Handshake, res?: Response): [string, { expires: Date, httpOnly: boolean, path: '/', sameSite: 'strict' }] | null => {
+        if (!req.headers.authorization && !req.headers.cookie) { return null }
+        // Token Verification
+        const token: string | null | undefined = (getCookie(req.headers.cookie, 'token') || req.headers.authorization)?.toString();
+        if(!token){ return null};
+        if(!Accounts.token.validate(token)){ return null};
+        
+        const sessionTokenPayload: SessionTokenPayload = {
+            'token': token,
+            'ip': (req.headers['x-forwarded-for'] ? (req.headers['x-forwarded-for'] as string).split(',')[0] : ((req as Request).ip || (req as Handshake).address)) as string,
+            'creation': Date.now()
+        }
+        const expiration: Date = new Date();
+        expiration.setMinutes(expiration.getMinutes() + sessionTokenExpiration);
+        
+        const sessionToken: string = jwt.sign(sessionTokenPayload, env.ACCOUNTS_SESSION_TOKEN_VERIFICATION_KEY)
+        const sessionTokenAssignment: [string, { expires: Date, httpOnly: boolean, path: '/', sameSite: 'strict' }]  = [sessionToken, {
+            expires: expiration,
+            httpOnly: true,
+            path: '/',
+            sameSite: 'strict'
+        }];
+        if (res) {
+            res.cookie('sessionToken', ...sessionTokenAssignment)
+        }
+        return sessionTokenAssignment
+    },
+    isSessionTokenValidandAdmin: async (req: Request, res?: Response): Promise<{ valid: boolean, admin: boolean }> => {
+        const response: { valid: boolean, admin: boolean } = { valid: false, admin: false }
         try {
             // Checking if Session Token or Token is Missing
-            if (!req.cookies.sessionToken || !req.cookies.token) { return response }
-
+            let sessionTokenAssigned: string | null = null;
+            if (!req.cookies.sessionToken && res) {
+                const sessionTokenAssignment: [string, { expires: Date, httpOnly: boolean, path: "/", sameSite: "strict" }] | null = Authentication.generateSessionToken(req, res)
+                if(!sessionTokenAssignment){ return response}
+                sessionTokenAssigned = sessionTokenAssignment[0]
+                response.valid = true
+            }
+            if ((!req.cookies.sessionToken && !sessionTokenAssigned) || (!req.cookies.token && !req.headers.authorization)) { return response }
             // Token Verification
-            const token: string = req.cookies.token.toString();
+            const token: string = (req.cookies.token || req.headers.authorization).toString();
             const decodedToken: accountInterface | null = Accounts.token.validate(token)
             if (!decodedToken) { return response }
 
             // Session Token Verification
-            const sessionToken: string = req.cookies.sessionToken.toString()
+            const sessionToken: string = (req.cookies.sessionToken || sessionTokenAssigned).toString()
             const decodedSessionToken: SessionTokenPayload | null = Accounts.sessionToken.validate(sessionToken)
             if (!decodedSessionToken) { return response }
 
@@ -156,7 +189,7 @@ export const Authentication = {
             // Session Payload Token Verification
             const decodedSessionPayloadToken: accountInterface | null = Accounts.token.validate(decodedSessionToken.token)
 
-            if(!decodedSessionPayloadToken){ return response}
+            if (!decodedSessionPayloadToken) { return response }
 
             const isEmailMatch: boolean = crypto.timingSafeEqual(Buffer.from(decodedToken.email), Buffer.from(decodedSessionPayloadToken.email));
             const isPasswordMatch: boolean = crypto.timingSafeEqual(Buffer.from(decodedToken.password), Buffer.from(decodedSessionPayloadToken.password))
@@ -165,7 +198,7 @@ export const Authentication = {
             if (!isPasswordMatch) { return response }
             response.valid = true;
 
-            if(decodedToken.role === 'admin'){ response.admin = true }
+            if (decodedToken.role === 'admin') { response.admin = true }
 
             return response
         } catch (error) {
@@ -173,26 +206,25 @@ export const Authentication = {
             return response
         }
     },
-    getGeneralInfo: async (req: Request): Promise<getGeneralInfoInterface> => {
-        const info: getGeneralInfoInterface = {loggedIn: false, admin: false}
+    getGeneralInfo: async (req: Request, res: Response): Promise<getGeneralInfoInterface> => {
+        const info: getGeneralInfoInterface = { loggedIn: false, admin: false }
         try {
-            const session: {valid: boolean, admin: boolean} = Authentication.isSessionTokenValidandAdmin(req)
-            if(session.valid === true) {
+            const session: { valid: boolean, admin: boolean } = await Authentication.isSessionTokenValidandAdmin(req, res)
+            if (session.valid === true) {
 
                 info.loggedIn = true
 
-                if(session.admin === true) { info.admin = true}
-
+                if (session.admin === true) { info.admin = true }
                 return info
             }
-            if (!req.cookies.token) { return info}
-            const token: string = req.cookies.token.toString()
+            if (!req.cookies.token || !req.headers.authorization) { return info }
+            const token: string = (req.cookies.token || req.headers.authorization).toString()
             const decodedToken: accountInterface | null = Accounts.token.validate(token)
 
-            if (!decodedToken) { return info}
+            if (!decodedToken) { return info }
 
             // Finding The User in the Database
-            const matchedAccount: accountInterface | undefined = (await Accounts.findAccountOne.email(decodedToken.email) as accountInterface | undefined)
+            const matchedAccount: accountInterface | undefined = (await Accounts.findOne.email(decodedToken.email) as accountInterface | undefined)
             if (!matchedAccount) { return info }
 
             // Checking Password
@@ -201,7 +233,7 @@ export const Authentication = {
 
             info.loggedIn = true
 
-            if(matchedAccount.role === 'admin') { info.admin = true };
+            if (matchedAccount.role === 'admin') { info.admin = true };
             return info
         } catch (error) {
             console.error(logPrefix("Error"), error)
@@ -210,11 +242,11 @@ export const Authentication = {
     },
     // Middlewares
     // for Normal Users:
-    token: async (req: Request, res: Response, next: NextFunction) => await Authentication.main(req, res, next, {API: false, adminOnly: false}),
-    tokenAPI: async (req: Request, res: Response, next: NextFunction) => await Authentication.main(req, res, next, {API: true, adminOnly: false}),
+    token: async (req: Request, res: Response, next: NextFunction) => await Authentication.main(req, res, next, { API: false, adminOnly: false }),
+    tokenAPI: async (req: Request, res: Response, next: NextFunction) => await Authentication.main(req, res, next, { API: true, adminOnly: false }),
     // for Administrators:
-    tokenAdmin: async (req: Request, res: Response, next: NextFunction) => await Authentication.main(req, res, next, {API: false, adminOnly: true}),
-    tokenAdminAPI: async (req: Request, res: Response, next: NextFunction) => await Authentication.main(req, res, next, {API: true, adminOnly: true}),
+    tokenAdmin: async (req: Request, res: Response, next: NextFunction) => await Authentication.main(req, res, next, { API: false, adminOnly: true }),
+    tokenAdminAPI: async (req: Request, res: Response, next: NextFunction) => await Authentication.main(req, res, next, { API: true, adminOnly: true }),
 }
 
 export default Authentication

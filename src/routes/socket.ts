@@ -51,8 +51,8 @@ io.on('connection', (socket) => {
             } as Response)
         }
     })
-    if (config.serverConfig.features.console) {
-        socket.on('command', async (CMD: any) => {
+    socket.on('command', async (CMD: any) => {
+        if (config.serverConfig.features.console) {
             try {
                 // Authentication
                 const isAuthorized: boolean = (await Authentication.main(socket.handshake, null, () => { }, {
@@ -135,6 +135,15 @@ io.on('connection', (socket) => {
                     }
                 } as Response)
             }
-        })
-    }
+        } else {
+            socket.emit(events.error, {
+                status: "This Feature is Disabled",
+                success: false,
+                data: null,
+                meta: {
+                    event: events.error,
+                }
+            } as Response)
+        }
+    })
 })
