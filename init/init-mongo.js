@@ -1,3 +1,3 @@
 db = db.getSiblingDB('mydatabase');
 db.createCollection('accounts');
-db.createCollection('shared');
+db.createCollection('configs');

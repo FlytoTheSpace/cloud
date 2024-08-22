@@ -3,7 +3,7 @@
 let GUI = true
 const webURL = ''
 const ID = null;
-const TOKEN = undefined;
+let TOKEN = null;
 
 // ESSENTIAL (for GUI/CLI)
 let clipBoard = []
@@ -53,10 +53,8 @@ const UI = {
 
         const options = {
             method: 'GET',
-            headers: (TOKEN) ? {
-                Authorization: TOKEN,
-                path: path
-            } : {
+            headers: {
+                Authorization: TOKEN?TOKEN:undefined,
                 path: path
             }
         }
@@ -142,18 +140,12 @@ const UI = {
 
             const start = Date.now()
             const options = {
-                method: 'POST',
-                headers: (TOKEN) ? {
-                    Authorization: TOKEN,
+                method: 'GET',
+                headers: {
+                    Authorization: TOKEN?TOKEN:undefined,
                     "Content-Type": 'application/json',
-                    action: 'open'
-                } : {
-                    "Content-Type": 'application/json',
-                    action: 'open'
-                },
-                body: JSON.stringify({
                     path: paths[i]
-                })
+                }
             }
             const headersSet = Date.now()
 
@@ -204,19 +196,12 @@ const UI = {
         }
 
         const options = {
-            method: 'POST',
-            headers: (TOKEN) ? {
-                Authorization: TOKEN,
+            method: 'GET',
+            headers: {
+                Authorization: TOKEN?TOKEN:undefined,
                 "Content-Type": 'application/json',
-                action: 'open'
-            } : {
-                "Content-Type": "application/json",
-
-                action: 'open'
-            },
-            body: JSON.stringify({
-                path: dataset.path,
-            })
+                path: dataset.path
+            }
         }
         const ID = displaybanner(Banners.info, "Opening...", -1)
         const request = await fetch(`${webURL}/cloud/files/actions/${userId}`, options)
@@ -292,18 +277,12 @@ const Action = {
      */
     get: async function (path) {
         const options = {
-            method: 'POST',
-            headers: (TOKEN) ? {
-                Authorization: TOKEN,
+            method: 'GET',
+            headers: {
+                Authorization: TOKEN?TOKEN:undefined,
                 "Content-Type": 'application/json',
-                action: 'open'
-            } : {
-                "Content-Type": "application/json",
-                action: 'open'
-            },
-            body: JSON.stringify({
                 path: dataset.path,
-            })
+            }
         }
         const request = await fetch(`${webURL}/cloud/files/actions/${userId}`, options)
         if (!request.ok) { return new Error((await (request.clone()).json()).status) }
@@ -370,13 +349,10 @@ const Action = {
         if (cutlist.length > 0) {
             cutlist.forEach(async ({ name, path }) => {
                 const options = {
-                    method: 'POST',
-                    headers: (TOKEN) ? {
-                        Authorization: TOKEN,
+                    method: 'PATCH',
+                    headers: {
+                        Authorization: TOKEN?TOKEN:undefined,
                         "Content-Type": 'application/json',
-                        action: 'move'
-                    } : {
-                        "Content-Type": "application/json",
                         action: 'move'
                     },
                     body: JSON.stringify({
@@ -392,13 +368,10 @@ const Action = {
         } else {
             clipBoard.forEach(async filePath => {
                 const options = {
-                    method: 'POST',
-                    headers: (TOKEN) ? {
-                        Authorization: TOKEN,
+                    method: 'PATCH',
+                    headers: {
+                        Authorization: TOKEN?TOKEN:undefined,
                         "Content-Type": 'application/json',
-                        action: 'copy'
-                    } : {
-                        "Content-Type": "application/json",
                         action: 'copy'
                     },
                     body: JSON.stringify({
@@ -421,13 +394,10 @@ const Action = {
 
         for (let i = 0; i < paths.length; i++) {
             const options = {
-                method: 'POST',
-                headers: (TOKEN) ? {
-                    Authorization: TOKEN,
+                method: 'DELETE',
+                headers: {
+                    Authorization: TOKEN?TOKEN:undefined,
                     "Content-Type": 'application/json',
-                    action: 'delete'
-                } : {
-                    "Content-Type": "application/json",
                     action: 'delete'
                 },
                 body: JSON.stringify({
